@@ -4,11 +4,11 @@ Rạp Nhà là frontend đồ án Thiết kế giao diện người dùng, dựa
 
 ## Lịch sử chỉnh sửa
 
-1. Xây dựng giao diện từ wireframe, bổ sung tương tác tìm kiếm, lọc phim và lưu lịch sử xem trên trình duyệt.
-2. Thay ảnh AI bằng poster và ảnh phim thật, đồng thời cập nhật thông tin phim, danh sách tập và liên kết xem.
-3. Bổ sung trình phát mẫu cho *Tears of Steel* và cấu hình triển khai tĩnh trên GitHub Pages.
-4. Mở rộng trang chủ với các hàng Phim chiếu rạp, Phim Việt Nam, Phim Hàn Quốc và bảng xếp hạng Top 10 phim gần đây.
-5. Cho các hàng phim cuộn vòng hai chiều. Mỗi lần bấm mũi tên trượt hai ô với chuyển động mượt hơn.
+1. Xây dựng giao diện thô từ wireframe, bổ sung tương tác tìm kiếm, lọc phim và lưu lịch sử xem trên trình duyệt.
+2. Thay ảnh bằng poster và ảnh phim thật, đồng thời cập nhật thông tin phim, danh sách tập và liên kết xem.
+3. Bổ sung trình phát mẫu và cấu hình triển khai tĩnh trên GitHub Pages.
+4. Mở rộng trang chủ với các hàng Phim chiếu rạp, Phim Việt Nam, Phim Hàn Quốc và bảng xếp hạng Top 10 phim gần đây. (Trước đó chỉ có 3 hàng, khiến cho trang chủ tương đối ngắn và ít sự lựa chọn cho User)
+5. Cho các hàng phim cuộn vòng hai chiều. Mỗi lần bấm mũi tên trượt hai ô với chuyển động mượt hơn. (Trải nghiệm mượt mà hơn cho User, một lần chuyển 2 phim 'có vẻ' phù hợp (CHECK LẠI))
 
 ## Giới hạn bản demo (HIỆN TẠI)
 ### Lớn:
@@ -18,6 +18,9 @@ Rạp Nhà là frontend đồ án Thiết kế giao diện người dùng, dựa
 - Thiếu animation mang tính trực quan.
 ### Bé:
 - Câu hỏi thường gặp: Chưa có hiệu ứng khi chuyển giữa các câu hỏi.
+- Trang chủ: Banner chưa tự động chuyển phim để quảng bá.
+- Avatar overlay: Phần ngôn ngữ nên ghi rõ "Language" (Nếu người không biết Tiếng Việt sẽ không biết chỗ nào để đổi ngôn ngữ, tuy đã có icon "toàn cầu" nhưng vẫn chưa đảm bảo được tính user-friendly)
+- Video player: Chưa có phần thua 10 giây vật lý (Optional, phù hợp cho tệp User bé)
 
 ## Chạy trên máy
 
