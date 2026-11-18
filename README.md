@@ -2,6 +2,14 @@
 
 Rạp Nhà là frontend đồ án Thiết kế giao diện người dùng, dựa trên wireframe gồm 15 màn hình. Website dùng HTML, CSS và JavaScript thuần và có 23 phim và series có thật.
 
+## Lịch sử chỉnh sửa
+
+1. Xây dựng giao diện từ wireframe, bổ sung tương tác tìm kiếm, lọc phim và lưu lịch sử xem trên trình duyệt.
+2. Thay ảnh AI bằng poster và ảnh phim thật, đồng thời cập nhật thông tin phim, danh sách tập và liên kết xem.
+3. Bổ sung trình phát mẫu cho *Tears of Steel* và cấu hình triển khai tĩnh trên GitHub Pages.
+4. Mở rộng trang chủ với các hàng Phim chiếu rạp, Phim Việt Nam, Phim Hàn Quốc và bảng xếp hạng Top 10 phim gần đây.
+5. Cho các hàng phim cuộn vòng hai chiều. Mỗi lần bấm mũi tên trượt hai ô với chuyển động mượt hơn.
+
 ## Giới hạn bản demo (HIỆN TẠI)
 ### Lớn:
 - Với phim bộ, danh sách tập hiển thị tên, ảnh và thời lượng. Rạp Nhà chưa phát video từng tập do hạn chế về nguồn phát.
