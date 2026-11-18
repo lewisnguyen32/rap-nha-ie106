@@ -137,6 +137,7 @@ h1, h2, h3 { line-height: 1.22; letter-spacing: -.025em; }
 .shelf + .shelf { margin-top: 37px; }
 .shelf-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .shelf-head h2 { display: flex; gap: 11px; align-items: center; font-size: clamp(18px, 2.25vw, 28px); font-weight: 800; }
+.shelf-caption { margin-top: 4px; color: var(--muted); font-size: 12px; }
 .section-glyph { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #793746; border-radius: 8px; color: var(--accent-text); background: #391d29; }
 .shelf-tools { display: flex; align-items: center; gap: 16px; }
 .shelf-tools > a { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-text); white-space: nowrap; font-size: 12px; font-weight: 700; }
@@ -154,6 +155,8 @@ h1, h2, h3 { line-height: 1.22; letter-spacing: -.025em; }
 .poster-score, .poster-badge { position: absolute; top: 8px; display: inline-flex; align-items: center; gap: 3px; padding: 3px 6px; border-radius: 5px; font-size: 10px; font-weight: 800; }
 .poster-score { right: 8px; color: var(--gold); background: #110e16dc; border: 1px solid #ffffff24; }
 .poster-badge { left: 8px; color: #ffeded; background: #972d40ed; border: 1px solid #e6617490; }
+.poster-rank { position: absolute; bottom: 8px; left: 8px; display: grid; place-items: center; min-width: 1.24em; padding: .04em .17em .08em; border: 1px solid #faf3ff37; border-left: 3px solid #938799; border-radius: 7px; background: #110e16ee; color: #fff; font-size: clamp(28px, 3.9vw, 54px); font-weight: 800; line-height: 1; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+.poster-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]) { border-left-color: var(--accent); color: #ffb6be; }
 .poster-play { position: absolute; display: grid; place-items: center; transform: translate(-50%, calc(-50% + 6px)); inset: 50% auto auto 50%; width: 44px; height: 44px; border-radius: 50%; background: #fd717a; color: #18080f; opacity: 0; transition: opacity .2s, transform .2s; }
 .film-card:hover .poster-play, .film-card:focus-visible .poster-play { opacity: 1; transform: translate(-50%, -50%); }
 .film-card h3 { margin: 11px 0 4px; color: #f7f4f8; font-size: clamp(12px, 1.2vw, 15px); font-weight: 700; overflow-wrap: anywhere; }
@@ -438,6 +441,7 @@ noscript { padding: 20px; text-align: center; }
   .hero-arrows .icon-button { width: 34px; height: 34px; }
   .shelf-head { gap: 6px; margin-bottom: 11px; }
   .shelf-head h2 { gap: 6px; font-size: clamp(15px,4.3vw,20px); }
+  .shelf-caption { font-size: 10px; }
   .section-glyph { width: 28px; height: 28px; }
   .section-glyph svg { width: 15px; height: 15px; }
   .shelf-tools { gap: 6px; }

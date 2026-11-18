@@ -51,7 +51,7 @@ const episodeCount = count => bi(`${count} tập`, `${count} episodes`);
 const genreInEnglish = {
   "Bí ẩn": "Mystery", "Gia đình": "Family", "Hài": "Comedy", "Hành động": "Action",
   "Hình sự": "Crime", "Tâm lý": "Drama", "Tình cảm": "Romance", "Cổ trang": "Period",
-  "Kinh dị": "Horror", "Giật gân": "Thriller", "Khoa học viễn tưởng": "Science fiction",
+  "Kinh dị": "Horror", "Giật gân": "Thriller", "Khoa học viễn tưởng": "Science fiction", "Kỳ ảo": "Fantasy",
 };
 const countryInEnglish = { "Việt Nam": "Vietnam", "Hàn Quốc": "South Korea", "Hoa Kỳ": "United States", "Hà Lan": "Netherlands" };
 const genreLabel = genre => bi(genre, genreInEnglish[genre] ?? genre);
@@ -214,11 +214,12 @@ function showSuggestions() {
   input.removeAttribute("aria-activedescendant");
 }
 
-function filmCard(film, badge = "") {
+function filmCard(film, { badge = "", rank } = {}) {
   return `<a class="film-card" href="${routeToFilm(film)}">
     <div class="poster"><img src="${film.poster}" alt="" width="520" height="780" loading="lazy" decoding="async">
       ${film.score == null ? "" : `<span class="poster-score" title="${film.publisher}" aria-label="${bi("Điểm", "Rating")} ${scoreText(film.score)} · ${film.publisher}">${icon("star", 13)} ${scoreText(film.score)}</span>`}
       ${badge ? `<span class="poster-badge">${badge}</span>` : ""}
+      ${rank ? `<span class="poster-rank" data-rank="${rank}" aria-hidden="true">${rank}</span><span class="sr-only">${bi("Hạng", "Rank")} ${rank}.</span>` : ""}
       <span class="poster-play">${icon("play", 24)}</span>
     </div>
     <h3>${film.title}</h3>
@@ -245,14 +246,21 @@ function hero() {
     </div>`;
 }
 
+const rankingCriterion = () => bi("Xếp theo thời điểm phát hành trong danh mục", "Ranked by release date in the catalogue");
+
 function homePage() {
   return `<section class="hero" id="hero" aria-roledescription="${bi("băng chuyền", "carousel")}">${hero()}</section>
     <div class="frame home-rows">${homeRows.map((row, index) => `<section class="shelf" aria-labelledby="shelf-title-${index}">
-      <div class="shelf-head"><h2 id="shelf-title-${index}"><span class="section-glyph">${icon(row.icon, 19)}</span>${bi(row.title, row.english)}</h2>
-        <div class="shelf-tools"><a href="${escapeHtml(catalogUrl({ sort: row.sort }))}">${bi("Xem tất cả", "View all")} ${icon("arrow", 15)}</a>
+      <div class="shelf-head">
+        <div><h2 id="shelf-title-${index}"><span class="section-glyph">${icon(row.icon, 19)}</span>${bi(row.title, row.english)}</h2>
+          ${row.params.collection === "top10" ? `<p class="shelf-caption">${rankingCriterion()}</p>` : ""}</div>
+        <div class="shelf-tools"><a href="${escapeHtml(catalogUrl(row.params))}" aria-label="${bi("Xem tất cả", "View all")} · ${bi(row.title, row.english)}">${bi("Xem tất cả", "View all")} ${icon("arrow", 15)}</a>
         <div class="shelf-arrows">${iconButton("left", bi("Cuộn sang trái", "Scroll left"), 'data-action="shelf-prev" disabled')}${iconButton("right", bi("Cuộn sang phải", "Scroll right"), 'data-action="shelf-next"')}</div></div>
       </div>
-      <div class="film-strip">${row.items.map(film => filmCard(film, film.episodes ? episodeCount(film.episodeCount) : "")).join("")}</div>
+      <div class="film-strip">${row.items.map(film => filmCard(film, {
+        badge: film.episodes ? episodeCount(film.episodeCount) : "",
+        rank: row.params.collection === "top10" ? recentRanks.get(film.id) : undefined,
+      })).join("")}</div>
     </section>`).join("")}</div>`;
 }
 
@@ -269,10 +277,12 @@ function emptyState(glyph, title, subtitle, href, label) {
 }
 
 function catalogPage(params) {
-  const keys = ["q", "type", "genre", "year", "country", "score", "sort"];
+  const keys = ["q", "type", "genre", "year", "country", "score", "sort", "collection"];
   const filter = Object.fromEntries(keys.map(key => [key, params.get(key) ?? ""]));
-  const { q, type, genre, year, country, score, sort } = filter;
-  const results = films.filter(film => (
+  const { q, type, genre, year, country, score, sort, collection } = filter;
+  const ranked = collection === "top10";
+  const candidates = ranked ? recentTop : collection === "theatrical" ? theatricalFilms : films;
+  const results = candidates.filter(film => (
     (!q || matches(q, film)) &&
     (!type || (film.episodeCount > 1 ? "series" : "movie") === type) &&
     (!genre || film.genres.includes(genre)) &&
@@ -283,38 +293,48 @@ function catalogPage(params) {
     (sort !== "picks" || selections.includes(film.id))
   ));
   if (sort === "score") results.sort((a, b) => b.score - a.score);
-  else if (sort === "new") results.sort((a, b) => b.year - a.year);
+  else if (sort === "new") results.sort(compareRelease);
   else if (sort === "picks") results.sort((a, b) => selections.indexOf(a.id) - selections.indexOf(b.id));
   else if (q) results.sort((a, b) => Number(normalize(b.title).startsWith(normalize(q))) - Number(normalize(a.title).startsWith(normalize(q))));
 
+  const row = homeRows.find(({ params: rowParams }) => collection
+    ? rowParams.collection === collection
+    : country && rowParams.country === country);
+  const categoryTitle = row && bi(row.title, row.english);
+  const resultCount = bi(`${results.length} kết quả`, `${results.length} results`);
+  const subtitle = ranked ? `${resultCount} · ${rankingCriterion()}` : resultCount;
   const title = q ? bi(`Kết quả cho “${escapeHtml(q)}”`, `Results for “${escapeHtml(q)}”`)
-    : (type === "movie" ? bi("Phim lẻ", "Movies") : type === "series" ? bi("Phim bộ", "Series") : (
+    : categoryTitle ||
+    (type === "movie" ? bi("Phim lẻ", "Movies") : type === "series" ? bi("Phim bộ", "Series") : (
       !genre && sort === "picks" ? bi("Rạp Nhà tuyển chọn", "Rạp Nhà picks")
         : !genre && sort === "score" ? bi("Điểm cao từ nhà phát hành", "Top distributor ratings")
           : !genre && sort === "new" ? bi("Phim phát hành gần đây", "Recent releases")
             : bi("Khám phá phim", "Discover films")
     ));
   const all = bi("Tất cả", "All");
+  const defaultSort = ranked ? bi("Theo thứ hạng", "Rank order")
+    : collection === "theatrical" ? bi("Theo ngày phát hành", "Release date") : bi("Độ liên quan", "Relevance");
   const options = (list, label = item => item) => [["", all], ...list.map(item => [item, label(item)])];
   const active = [["genre", genreLabel(genre)], ["year", year], ["country", countryLabel(country)], ["score", score && `≥ ${score} / 10`]].filter(([, value]) => value);
 
   return `<div class="frame inner-page">
     <div class="crumb"><a href="#/">${bi("Trang chủ", "Home")}</a>${icon("right", 14)}<span>${q ? bi("Tìm kiếm", "Search") : bi("Khám phá", "Discover")}</span></div>
-    ${pageTitle(title, bi(`${results.length} kết quả`, `${results.length} results`))}
+    ${pageTitle(title, subtitle)}
     <section class="filter-panel" aria-label="${bi("Bộ lọc phim", "Film filters")}">
       <form id="filter-form">
         <input type="hidden" name="q" value="${escapeHtml(q)}">
+        <input type="hidden" name="collection" value="${escapeHtml(collection)}">
         ${selectField("type", bi("Loại phim", "Type"), [["", all], ["movie", bi("Phim lẻ", "Movies")], ["series", bi("Phim bộ", "Series")]], type)}
         ${selectField("genre", bi("Thể loại", "Genre"), options(genres, genreLabel), genre)}
         ${selectField("year", bi("Năm phát hành", "Release year"), options(years), year)}
         ${selectField("country", bi("Quốc gia", "Country"), options(countries, countryLabel), country)}
         ${selectField("score", bi("Điểm đánh giá", "Rating"), [["", all], ["7", "7+"], ["8", "8+"], ["8.5", "8.5+"]], score)}
-        ${selectField("sort", bi("Sắp xếp", "Sort by"), [["", bi("Độ liên quan", "Relevance")], ["new", bi("Mới phát hành", "Recent releases")], ["score", bi("Điểm từ nhà phát hành", "Distributor ratings")], ["picks", bi("Rạp Nhà tuyển chọn", "Rạp Nhà picks")]], sort)}
+        ${selectField("sort", bi("Sắp xếp", "Sort by"), [["", defaultSort], ["new", bi("Mới phát hành", "Recent releases")], ["score", bi("Điểm từ nhà phát hành", "Distributor ratings")], ["picks", bi("Rạp Nhà tuyển chọn", "Rạp Nhà picks")]], sort)}
       </form>
       ${active.length ? `<div class="filter-tags">${active.map(([key, value]) => `<a class="chip" aria-label="${bi("Bỏ bộ lọc", "Remove filter")} ${escapeHtml(value)}" href="${escapeHtml(catalogUrl({ ...filter, [key]: "" }))}">${escapeHtml(value)} ${icon("x", 14)}</a>`).join("")}
-        <a class="filter-reset" href="${escapeHtml(catalogUrl({ q, type, sort }))}">${bi("Xóa bộ lọc", "Clear filters")}</a></div>` : ""}
+        <a class="filter-reset" href="${escapeHtml(catalogUrl({ q, type, sort, collection }))}">${bi("Xóa bộ lọc", "Clear filters")}</a></div>` : ""}
     </section>
-    ${results.length ? `<div class="film-grid">${results.map(film => filmCard(film)).join("")}</div>`
+    ${results.length ? `<div class="film-grid">${results.map(film => filmCard(film, { rank: ranked ? recentRanks.get(film.id) : undefined })).join("")}</div>`
       : emptyState("search", bi("Chưa tìm thấy phim", "No films found"), bi("Thử một tên phim khác hoặc giảm số bộ lọc.", "Try another film title or fewer filters."), catalogUrl(), bi("Khám phá tất cả phim", "Browse all films"))}
   </div>`;
 }
