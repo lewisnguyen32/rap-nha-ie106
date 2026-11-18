@@ -15,6 +15,11 @@ Chạy `npm run dev` trong thư mục này và mở [http://127.0.0.1:4173/](htt
 
 Lịch sử lưu tiến độ của video phát trực tiếp trên Rạp Nhà. Với phim xem ở nền tảng khác, lịch sử chỉ ghi tập hoặc phim đã mở. Tài khoản và cài đặt lưu trên trình duyệt. Email liên hệ là địa chỉ ví dụ.
 
+## Giới hạn bản demo
+
+- Với phim bộ, danh sách tập hiển thị tên, ảnh và thời lượng. Rạp Nhà chưa phát video từng tập do hạn chế về nguồn phát.
+- Chọn **Xem tại nguồn** để mở nền tảng phát hành khi có liên kết. **Tears of Steel** phát trực tiếp trên Rạp Nhà theo giấy phép CC BY 3.0.
+
 ## Nguồn phim và hình ảnh
 
 - Trang chi tiết của từng phim có liên kết tới nơi công bố thông tin. Poster, ảnh nền và trailer lấy từ [3388 Films](https://www.3388films.com/films/), [Well Go USA](https://wellgousa.com/films/furie), [CGV](https://www.cgv.vn/en/nha-ba-nu.html), [Film Movement](https://filmmovement.com/press/film/578-magnum) và [Netflix](https://www.netflix.com/vn-vi/browse/genre/107571). Một số ảnh nền lấy từ hình đại diện của trailer chính thức.
