@@ -255,7 +255,7 @@ function homePage() {
         <div><h2 id="shelf-title-${index}"><span class="section-glyph">${icon(row.icon, 19)}</span>${bi(row.title, row.english)}</h2>
           ${row.params.collection === "top10" ? `<p class="shelf-caption">${rankingCriterion()}</p>` : ""}</div>
         <div class="shelf-tools"><a href="${escapeHtml(catalogUrl(row.params))}" aria-label="${bi("Xem tất cả", "View all")} · ${bi(row.title, row.english)}">${bi("Xem tất cả", "View all")} ${icon("arrow", 15)}</a>
-        <div class="shelf-arrows">${iconButton("left", bi("Cuộn sang trái", "Scroll left"), 'data-action="shelf-prev" disabled')}${iconButton("right", bi("Cuộn sang phải", "Scroll right"), 'data-action="shelf-next"')}</div></div>
+        <div class="shelf-arrows">${iconButton("left", bi("Cuộn sang trái", "Scroll left"), 'data-action="shelf-prev"')}${iconButton("right", bi("Cuộn sang phải", "Scroll right"), 'data-action="shelf-next"')}</div></div>
       </div>
       <div class="film-strip">${row.items.map(film => filmCard(film, {
         badge: film.episodes ? episodeCount(film.episodeCount) : "",
@@ -921,12 +921,128 @@ function termsPage() {
     <p>${bi("Thông tin đăng ký, lịch sử, theo dõi và cài đặt lưu trong trình duyệt đang dùng. Bạn có thể xóa chúng trong phần dữ liệu trang web của trình duyệt.", "Registration, history, watchlist and settings are stored in your browser. You can clear them from your browser’s site data settings.")}</p></section></div>`;
 }
 
-function updateShelf(strip) {
-  const shelf = strip.closest(".shelf");
-  const atStart = strip.scrollLeft <= 2;
-  const atEnd = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2;
-  shelf.querySelector("[data-action=shelf-prev]").disabled = atStart;
-  shelf.querySelector("[data-action=shelf-next]").disabled = atEnd;
+function bindShelf(shelf, signal) {
+  const strip = shelf.querySelector(".film-strip");
+  const cards = [...strip.children];
+  const previous = shelf.querySelector("[data-action=shelf-prev]");
+  const next = shelf.querySelector("[data-action=shelf-next]");
+  if (cards.length < 2) {
+    previous.disabled = next.disabled = true;
+    return;
+  }
+
+  const step = 2;
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  const copyCards = (source = cards) => source.map(card => {
+    const copy = card.cloneNode(true);
+    copy.tabIndex = -1;
+    copy.setAttribute("aria-hidden", "true");
+    return copy;
+  });
+  const leading = copyCards();
+  strip.prepend(...leading);
+  // Leave room to advance two cards across the seam when the whole row fits.
+  strip.append(...copyCards(), ...copyCards(cards.slice(0, step)));
+
+  const wrap = index => ((index % cards.length) + cards.length) % cards.length;
+  let cardWidth = 0;
+  let visibleWidth = 0;
+  let activeIndex = 0;
+  let target = null;
+  let settleTimer;
+  let animation = 0;
+
+  function stopAnimation() {
+    cancelAnimationFrame(animation);
+    animation = 0;
+    strip.classList.remove("is-sliding");
+  }
+
+  function measure() {
+    const cycleWidth = cards[0].getBoundingClientRect().left - leading[0].getBoundingClientRect().left;
+    const width = strip.clientWidth;
+    const nextCardWidth = cycleWidth / cards.length;
+    if (!width || (width === visibleWidth && Math.abs(nextCardWidth - cardWidth) < .01)) return;
+    clearTimeout(settleTimer);
+    stopAnimation();
+    cardWidth = nextCardWidth;
+    visibleWidth = width;
+    if (target !== null) activeIndex = wrap(target);
+    target = null;
+    strip.scrollTo({ left: (cards.length + activeIndex) * cardWidth, behavior: "instant" });
+  }
+
+  function settle() {
+    clearTimeout(settleTimer);
+    if (strip.clientWidth !== visibleWidth) {
+      measure();
+      return;
+    }
+    target = null;
+    const index = Math.round(strip.scrollLeft / cardWidth);
+    activeIndex = wrap(index);
+    if (index < cards.length || index >= cards.length * 2) {
+      // The middle copy shows the same sequence, including at the seam.
+      strip.scrollTo({ left: (cards.length + activeIndex) * cardWidth, behavior: "instant" });
+    }
+  }
+
+  function move(direction) {
+    const offset = direction * step;
+    let index = (target ?? Math.round(strip.scrollLeft / cardWidth)) + offset;
+    const last = Math.floor((strip.scrollWidth - strip.clientWidth + 1) / cardWidth);
+    clearTimeout(settleTimer);
+    cancelAnimationFrame(animation);
+    if (index < 0 || index > last) {
+      settle();
+      index = Math.round(strip.scrollLeft / cardWidth) + offset;
+    }
+    target = index;
+    const destination = index * cardWidth;
+    if (reducedMotion.matches) {
+      stopAnimation();
+      strip.scrollTo({ left: destination, behavior: "instant" });
+      settle();
+      return;
+    }
+
+    const start = strip.scrollLeft;
+    const startedAt = performance.now();
+    strip.classList.add("is-sliding");
+    function slide(now) {
+      const progress = Math.min(1, (now - startedAt) / 360);
+      const eased = progress * progress * (3 - 2 * progress);
+      strip.scrollLeft = start + (destination - start) * eased;
+      if (progress < 1) animation = requestAnimationFrame(slide);
+      else {
+        settle();
+        stopAnimation();
+      }
+    }
+    animation = requestAnimationFrame(slide);
+  }
+
+  measure();
+  previous.addEventListener("click", () => move(-1), { signal });
+  next.addEventListener("click", () => move(1), { signal });
+  strip.addEventListener("scroll", () => {
+    if (animation) return;
+    clearTimeout(settleTimer);
+    const atEdge = strip.scrollLeft <= 1 || strip.scrollLeft + visibleWidth >= strip.scrollWidth - 1;
+    if (atEdge) settle();
+    else settleTimer = setTimeout(settle, 140);
+  }, { passive: true, signal });
+  for (const event of ["pointerdown", "wheel", "focusin"]) {
+    strip.addEventListener(event, () => {
+      target = null;
+      stopAnimation();
+    }, { passive: true, signal });
+  }
+  window.addEventListener("resize", measure, { signal });
+  signal.addEventListener("abort", () => {
+    clearTimeout(settleTimer);
+    stopAnimation();
+  }, { once: true });
 }
 
 function render({ focus = false, scroll = true } = {}) {
@@ -953,12 +1069,7 @@ function render({ focus = false, scroll = true } = {}) {
   if (!page) {
     main.innerHTML = homePage();
     const events = new AbortController();
-    const strips = [...main.querySelectorAll(".film-strip")];
-    strips.forEach(strip => {
-      updateShelf(strip);
-      strip.addEventListener("scroll", () => updateShelf(strip), { passive: true, signal: events.signal });
-    });
-    window.addEventListener("resize", () => strips.forEach(updateShelf), { signal: events.signal });
+    main.querySelectorAll(".shelf").forEach(shelf => bindShelf(shelf, events.signal));
     disposePage = () => events.abort();
   } else if (page === "kham-pha") main.innerHTML = catalogPage(params);
   else if (page === "phim" && film) main.innerHTML = detailPage(film);
@@ -1169,9 +1280,6 @@ document.addEventListener("click", event => {
     section.innerHTML = hero();
     const focusSelector = action === "hero-select" ? `[data-index="${heroIndex}"]` : `[data-action="${action}"]`;
     section.querySelector(focusSelector)?.focus({ preventScroll: true });
-  } else if (action.startsWith("shelf-")) {
-    const strip = button.closest(".shelf").querySelector(".film-strip");
-    strip.scrollBy({ left: strip.clientWidth * (action === "shelf-next" ? 1 : -1), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   } else if (action === "trailer") openTrailer(filmById[button.dataset.film], button);
   else if (action === "source-watch") {
     const { film: id } = button.dataset;

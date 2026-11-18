@@ -2,6 +2,15 @@
 
 Rạp Nhà là frontend đồ án Thiết kế giao diện người dùng, dựa trên wireframe gồm 15 màn hình. Website dùng HTML, CSS và JavaScript thuần và có 23 phim và series có thật.
 
+## Giới hạn bản demo (HIỆN TẠI)
+### Lớn:
+- Với phim bộ, danh sách tập hiển thị tên, ảnh và thời lượng. Rạp Nhà chưa phát video từng tập do hạn chế về nguồn phát.
+- Chọn **Xem tại nguồn** để mở nền tảng phát hành khi có liên kết. **Tears of Steel** phát trực tiếp trên Rạp Nhà theo giấy phép CC BY 3.0.
+- Banner lớn ở trang chủ hiện tại khác spacing ở mỗi phim => Khi đổi phim có thể làm lệch khu vực đó.
+- Thiếu animation mang tính trực quan.
+### Bé:
+- Câu hỏi thường gặp: Chưa có hiệu ứng khi chuyển giữa các câu hỏi.
+
 ## Chạy trên máy
 
 Chạy `npm run dev` trong thư mục này và mở [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Cần Node.js. Lệnh `npm run check` kiểm tra cú pháp JavaScript.
@@ -16,11 +25,6 @@ Trên trang chủ, **Top 10 phim gần đây** xếp theo ngày phát hành tạ
 4. Chọn **Đăng nhập → Dùng tài khoản mẫu** để xem theo dõi và lịch sử của Minh An. Có thể đăng ký bằng dữ liệu thử và mã OTP `123456`.
 
 Lịch sử lưu tiến độ của video phát trực tiếp trên Rạp Nhà. Với phim xem ở nền tảng khác, lịch sử chỉ ghi tập hoặc phim đã mở. Tài khoản và cài đặt lưu trên trình duyệt. Email liên hệ là địa chỉ ví dụ.
-
-## Giới hạn bản demo
-
-- Với phim bộ, danh sách tập hiển thị tên, ảnh và thời lượng. Rạp Nhà chưa phát video từng tập do hạn chế về nguồn phát.
-- Chọn **Xem tại nguồn** để mở nền tảng phát hành khi có liên kết. **Tears of Steel** phát trực tiếp trên Rạp Nhà theo giấy phép CC BY 3.0.
 
 ## Nguồn phim và hình ảnh
 
