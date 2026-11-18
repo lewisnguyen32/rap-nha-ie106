@@ -1,0 +1,9 @@
+{
+  "name": "rap-nha-ie106",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node preview.mjs",
+    "check": "node --check preview.mjs && node --check dist/film-episodes.js && node --check dist/catalog.js && node --check dist/app.js"
+  }
+}
