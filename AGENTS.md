@@ -1,8 +1,10 @@
 # Hướng dẫn làm việc với Rạp Nhà
 
+**Bắt buộc đọc trước khi làm việc.** Ở đầu mỗi phiên, mở và đọc [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) trước khi phân tích yêu cầu, lập kế hoạch hoặc chỉnh sửa repo. Sau đó đọc [memory.md](memory.md) để nắm trạng thái bàn giao của frontend.
+
 Rạp Nhà là đồ án Thiết kế giao diện người dùng IE106, dựng từ wireframe 15 màn hình. Phạm vi là giao diện và tương tác bằng HTML, CSS và JavaScript thuần. Tài khoản, theo dõi, lịch sử và cài đặt là dữ liệu demo lưu trong trình duyệt.
 
-Đọc [memory.md](memory.md) để nắm trạng thái bàn giao khi bắt đầu phiên mới. [README.md](README.md) có kịch bản trình diễn, lịch sử chỉnh sửa và nguồn tư liệu.
+[README.md](README.md) có kịch bản trình diễn, lịch sử chỉnh sửa và nguồn tư liệu.
 
 ## Cấu trúc
 
