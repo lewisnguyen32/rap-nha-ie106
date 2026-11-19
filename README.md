@@ -13,6 +13,9 @@ Lịch sử chỉnh sửa
 7. Bổ sung 60 ảnh Full HD cho trình phát, gồm 19 ảnh phim lẻ và 41 ảnh tập phim bộ. (Phước)
 8. Ổn định bố cục banner trang chủ khi chuyển phim để các nút và mục Top 10 phim gần đây giữ nguyên vị trí. Tiêu đề dài tự giảm cỡ chữ khi cần. Đổi ảnh nền Thám Tử Kiên sang bản không chữ và căn lại để khuôn mặt nhân vật hiển thị rõ trên desktop và mobile. (Phước)
 9. Thêm luồng quên mật khẩu, màn hình đang tải và hộp thoại kết quả.
+10. Tinh gọn banner và tiêu đề hàng phim, chuyển số hạng Top 10 xuống cạnh tên phim và đưa danh sách tập lên ngay sau thông tin phim bộ.
+11. Cập nhật logo Rạp Nhà với biểu tượng mái nhà nối với nút phát. Đầu trang và chân trang dùng logo đầy đủ, còn favicon và màn hình chờ dùng biểu tượng riêng.
+12. Thêm ô xem nhanh trên desktop. Rê chuột hoặc dùng Tab đến thẻ phim để xem tóm tắt, thể loại, năm phát hành, thời lượng hoặc số tập và điểm đánh giá nếu có.
 
 Xem lý do, kết quả và gợi ý minh họa cho từng mốc trong [lịch sử chỉnh sửa chi tiết](CHANGELOG.md).
 ## Giới hạn bản demo

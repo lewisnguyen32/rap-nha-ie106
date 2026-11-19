@@ -53,4 +53,26 @@ Từ trang Đăng nhập, người dùng có thể mở **Quên mật khẩu?**,
 
 Màn hình **Đang tải** phản hồi trong lúc kiểm tra email hoặc lưu mật khẩu. Đường dẫn `#/dang-tai` mở riêng màn hình để minh họa trong báo cáo. Hộp thoại thất bại giải thích vấn đề và đưa tiêu điểm về trường cần sửa. Hộp thoại thành công xác nhận việc đổi mật khẩu và đưa người dùng về trang đăng nhập.
 
+## Tinh gọn banner và tiêu đề hàng phim
+
+Nhãn **Phim nổi bật** chuyển từ ô có viền thành chữ nhỏ trên ảnh nền. Tiêu đề mỗi hàng phim bỏ biểu tượng trang trí và nút **Chi tiết** trên banner bỏ bóng đỏ để ảnh và tên phim dễ nổi bật hơn.
+
+## Làm rõ thứ hạng và thông tin trên thẻ phim
+
+Số hạng Top 10 chuyển từ trên poster xuống cạnh tên phim để tránh che hình. Chữ ghi năm phát hành và loại phim tăng từ 11 px lên 13 px trên máy tính. Các thẻ dẫn đến trang giới thiệu phim dùng hiệu ứng làm sáng nhẹ poster thay cho biểu tượng **Phát** khi rê chuột.
+
+## Đưa danh sách tập lên ngay sau thông tin phim bộ
+
+Trang giới thiệu phim bộ đặt danh sách tập ngay dưới khối thông tin để người dùng chọn tập nhanh hơn. Trailer được mở từ nút **Trailer** cạnh nút xem.
+
+## Cập nhật bộ logo Rạp Nhà
+
+Logo mới kết hợp đường nét mái nhà với nút phát. Đầu trang và chân trang dùng bản có tên **Rạp Nhà**. Tab trình duyệt và màn hình chờ dùng bản rút gọn chỉ có biểu tượng.
+
+## Thêm ô xem nhanh khi duyệt phim
+
+Trên desktop, ô xem nhanh xuất hiện bên cạnh poster sau khoảng 0,3 giây khi rê chuột lên thẻ phim. Ô hiển thị tên, năm phát hành, thời lượng hoặc số tập, điểm đánh giá nếu có, tóm tắt và thể loại. Khi poster ở gần mép màn hình, ô tự mở về phía có đủ chỗ.
+
+Người dùng bàn phím có thể dùng **Tab** để xem nhanh, **Escape** để đóng và **Enter** để mở trang giới thiệu. Đã thử trên Chrome ở trang chủ và trang danh mục.
+
 Xem các luồng trình diễn trong [README](README.md) và các điểm còn mở trong [giới hạn bản demo](DEMO_LIMITATIONS.md).

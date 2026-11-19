@@ -84,7 +84,6 @@ const symbols = {
   pause: '<path d="M9 5v14m6-14v14" stroke-width="3"/>',
   star: '<path d="m12 3 2.7 5.6 6.2.9-4.5 4.4 1.1 6.2-5.5-3-5.5 3 1.1-6.2L3 9.5l6.2-.9z" fill="currentColor" stroke="none"/>',
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/>',
-  trend: '<path d="m3 17 6-6 4 4 7-8m-6 0h6v6"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/>',
   bookmark: '<path d="M6 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v15l-6-4-6 4z"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h5l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3z"/>',
@@ -105,7 +104,7 @@ const symbols = {
 };
 const icon = (name, size = 20) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${symbols[name] ?? ""}</svg>`;
 const iconButton = (name, label, attrs = "") => `<button type="button" class="icon-button" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" ${attrs}>${icon(name)}</button>`;
-const brand = () => `<a class="brand" href="#/" aria-label="Rạp Nhà"><img src="assets/icon.svg" alt="" width="36" height="36"><span>Rạp<span> Nhà</span></span></a>`;
+const brand = () => `<a class="brand" href="#/" aria-label="Rạp Nhà"><img src="assets/logo.svg" alt="" width="239" height="68"></a>`;
 const accountLinks = () => [
   ["tai-khoan", "user", bi("Trang cá nhân", "Profile")],
   ["lich-su", "clock", bi("Lịch sử xem", "Watch history")],
@@ -226,16 +225,117 @@ function showSuggestions() {
 }
 
 function filmCard(film, { badge = "", rank } = {}) {
-  return `<a class="film-card" href="${routeToFilm(film)}">
+  return `<a class="film-card" href="${routeToFilm(film)}" data-film="${escapeHtml(film.id)}">
     <div class="poster"><img src="${film.poster}" alt="" width="520" height="780" loading="lazy" decoding="async">
       ${film.score == null ? "" : `<span class="poster-score" title="${film.publisher}" aria-label="${bi("Điểm", "Rating")} ${scoreText(film.score)} · ${film.publisher}">${icon("star", 13)} ${scoreText(film.score)}</span>`}
       ${badge ? `<span class="poster-badge">${badge}</span>` : ""}
-      ${rank ? `<span class="poster-rank" data-rank="${rank}" aria-hidden="true">${rank}</span><span class="sr-only">${bi("Hạng", "Rank")} ${rank}.</span>` : ""}
-      <span class="poster-play">${icon("play", 24)}</span>
     </div>
-    <h3>${film.title}</h3>
-    <p>${film.year}<span>·</span>${typeOf(film)}</p>
+    <div class="film-card-caption">
+      ${rank ? `<span class="film-rank"><span class="sr-only">${bi("Hạng", "Rank")} </span>${rank}</span>` : ""}
+      <div class="film-card-copy">
+        <h3>${film.title}</h3>
+        <p>${film.year}<span>·</span>${typeOf(film)}</p>
+      </div>
+    </div>
   </a>`;
+}
+
+function bindFilmPreview() {
+  const preview = document.querySelector("#film-preview");
+  const desktop = matchMedia("(min-width: 800px) and (min-height: 360px)");
+  const gap = 10;
+  const width = 312;
+  let activeCard = null;
+  let timer;
+
+  function close() {
+    clearTimeout(timer);
+    if (!activeCard) return;
+    activeCard.removeAttribute("aria-describedby");
+    activeCard = null;
+    preview.hidden = true;
+  }
+
+  function position(card) {
+    const poster = card.querySelector(".poster").getBoundingClientRect();
+    const strip = card.closest(".film-strip")?.getBoundingClientRect();
+    const viewportWidth = document.documentElement.clientWidth;
+    const topLimit = header.getBoundingClientRect().bottom + gap;
+    const left = Math.max(0, poster.left, strip?.left ?? 0);
+    const right = Math.min(viewportWidth, poster.right, strip?.right ?? viewportWidth);
+    if (left >= right || poster.bottom <= topLimit || poster.top >= innerHeight) {
+      close();
+      return;
+    }
+    const roomRight = viewportWidth - right - 2 * gap;
+    const roomLeft = left - 2 * gap;
+    const opensRight = roomRight >= width || roomRight >= roomLeft;
+    preview.style.width = `${Math.min(width, opensRight ? roomRight : roomLeft)}px`;
+    preview.style.left = `${opensRight ? right + gap : left - preview.offsetWidth - gap}px`;
+    const bottomLimit = innerHeight - preview.offsetHeight - gap;
+    preview.style.top = `${Math.max(topLimit, Math.min(poster.top + gap, bottomLimit))}px`;
+  }
+
+  function open(card, film) {
+    if (!card.isConnected) {
+      close();
+      return;
+    }
+    preview.innerHTML = `<strong class="film-preview-title">${escapeHtml(film.title)}</strong>
+      <p class="film-preview-meta"><span>${film.year}</span>
+        <span>${film.episodeCount > 1 ? episodeCount(film.episodeCount) : minutesLabel(film.minutes)}</span>
+        ${film.score == null ? "" : `<span class="film-preview-score" title="${escapeHtml(film.publisher)}">${icon("star", 14)} ${scoreText(film.score)} / 10</span>`}
+      </p>
+      <p class="film-preview-summary">${escapeHtml(film.description)}</p>
+      <p class="film-preview-genres">${escapeHtml(film.genres.map(genreLabel).join(", "))}</p>`;
+    preview.hidden = false;
+    position(card);
+    if (!preview.hidden) card.setAttribute("aria-describedby", preview.id);
+  }
+
+  function show(card, delay) {
+    const film = filmById[card.dataset.film];
+    if (!desktop.matches || !film) return;
+    if (card === activeCard && !preview.hidden) {
+      clearTimeout(timer);
+      return;
+    }
+    close();
+    activeCard = card;
+    if (delay) timer = setTimeout(() => open(card, film), delay);
+    else open(card, film);
+  }
+
+  function scheduleClose() {
+    clearTimeout(timer);
+    if (preview.hidden) close();
+    else timer = setTimeout(close, 220);
+  }
+
+  main.addEventListener("pointerover", event => {
+    const card = event.target.closest(".film-card");
+    if (event.pointerType === "mouse" && card && !card.contains(event.relatedTarget)) show(card, 300);
+  });
+  main.addEventListener("pointerout", event => {
+    if (event.pointerType !== "mouse" || !activeCard?.contains(event.target) || activeCard.contains(event.relatedTarget)) return;
+    if (!activeCard.matches(":focus-visible")) scheduleClose();
+  });
+  preview.addEventListener("pointerenter", () => clearTimeout(timer));
+  preview.addEventListener("pointerleave", event => {
+    if (!activeCard?.contains(event.relatedTarget) && !activeCard?.matches(":focus-visible")) scheduleClose();
+  });
+  main.addEventListener("focusin", event => {
+    if (event.target.matches(".film-card:focus-visible")) show(event.target, 0);
+  });
+  main.addEventListener("focusout", event => {
+    if (event.target === activeCard && !activeCard.matches(":hover") && !preview.matches(":hover")) close();
+  });
+  window.addEventListener("scroll", () => {
+    if (!preview.hidden && activeCard.matches(":focus-visible")) position(activeCard);
+    else close();
+  }, { capture: true, passive: true });
+  window.addEventListener("resize", close);
+  return close;
 }
 
 function heroArtStyle(film) {
@@ -250,7 +350,7 @@ function hero() {
     <div class="frame hero-inner">
       <div class="hero-slides">
         ${featured.map((film, index) => `<div class="hero-copy"${index === heroIndex ? "" : " inert"}>
-          <div class="featured-label">${icon("trend", 15)} ${bi("PHIM NỔI BẬT", "FEATURED TITLE")}</div>
+          <div class="featured-label">${bi("PHIM NỔI BẬT", "FEATURED TITLE")}</div>
           <h1>${film.title}</h1>
           <div class="film-meta">${film.score == null ? "" : `<span class="meta-score" title="${film.publisher}">${icon("star", 16)} ${scoreText(film.score)}</span>`}<span>${film.year}</span><span>${film.genres.map(genreLabel).join(", ")}</span><span>${film.episodeCount > 1 ? episodeCount(film.episodeCount) : minutesLabel(film.minutes)}</span></div>
           <p>${film.description}</p>
@@ -300,7 +400,7 @@ function homePage() {
   return `<section class="hero" id="hero" aria-roledescription="${bi("băng chuyền", "carousel")}">${hero()}</section>
     <div class="frame home-rows">${homeRows.map((row, index) => `<section class="shelf" aria-labelledby="shelf-title-${index}">
       <div class="shelf-head">
-        <div><h2 id="shelf-title-${index}"><span class="section-glyph">${icon(row.icon, 19)}</span>${bi(row.title, row.english)}</h2>
+        <div><h2 id="shelf-title-${index}">${bi(row.title, row.english)}</h2>
           ${row.params.collection === "top10" ? `<p class="shelf-caption">${rankingCriterion()}</p>` : ""}</div>
         <div class="shelf-tools"><a href="${escapeHtml(catalogUrl(row.params))}" aria-label="${bi("Xem tất cả", "View all")} · ${bi(row.title, row.english)}">${bi("Xem tất cả", "View all")} ${icon("arrow", 15)}</a>
         <div class="shelf-arrows">${iconButton("left", bi("Cuộn sang trái", "Scroll left"), 'data-action="shelf-prev"')}${iconButton("right", bi("Cuộn sang phải", "Scroll right"), 'data-action="shelf-next"')}</div></div>
@@ -462,13 +562,12 @@ function detailPage(film) {
     </div>
   </section>
   <div class="frame detail-sections">
-    <section class="trailer-section">
+    ${film.episodeCount > 1 ? episodeList(film) : `<section class="trailer-section">
       <div><h2>Trailer</h2><p>${film.trailerPublisher ?? film.publisher}</p></div>
       <button type="button" class="trailer-preview" data-action="trailer" data-film="${film.id}" aria-label="${bi("Phát trailer", "Play trailer")} · ${film.title}">
         <img src="${backdropOf(film)}" alt="" loading="lazy"><span>${icon("play", 32)}</span>
       </button>
-    </section>
-    ${film.episodeCount > 1 ? episodeList(film) : ""}
+    </section>`}
   </div>`;
 }
 
@@ -1227,6 +1326,7 @@ function bindShelf(shelf, signal) {
 }
 
 function render({ focus = false, scroll = true } = {}) {
+  closeFilmPreview();
   const state = route();
   const { page, id, params } = state;
   const film = filmById[id];
@@ -1291,6 +1391,7 @@ function render({ focus = false, scroll = true } = {}) {
 }
 
 function replaceAccountContent(markup, selector) {
+  closeFilmPreview();
   main.querySelector(".account-content").innerHTML = markup;
   if (selector) main.querySelector(selector)?.focus({ preventScroll: true });
 }
@@ -1425,6 +1526,7 @@ document.addEventListener("keydown", event => {
     input.focus();
   } else if (event.key === "Escape") {
     const expanded = header.querySelector("button[aria-expanded=true]");
+    closeFilmPreview();
     hidePopovers();
     expanded?.focus();
   } else if (event.target === input && ["ArrowDown", "ArrowUp"].includes(event.key) && input.value.trim()) {
@@ -1520,4 +1622,5 @@ document.addEventListener("click", event => {
   }
 });
 
+const closeFilmPreview = bindFilmPreview();
 render();

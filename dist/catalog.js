@@ -202,12 +202,12 @@ const vietnameseShelf = ["tet-o-lang-dia-nguc", "tiem-an-cua-quy", "hai-phuong",
 const selections = ["tet-o-lang-dia-nguc", "hai-phuong", "mai", "khi-cuoc-doi-cho-ban-qua-quyt", "tham-tu-kien", "thanh-soi", "chuyen-tau-sinh-tu", "tears-of-steel"];
 const rated = films.filter(film => film.score != null).sort((a, b) => b.score - a.score);
 const homeRows = [
-  { title: "Top 10 phim gần đây", english: "Top 10 recent releases", icon: "trend", params: { collection: "top10" }, items: recentTop },
-  { title: "Phim chiếu rạp", english: "Theatrical films", icon: "movie", params: { collection: "theatrical" }, items: theatricalShelf.slice(0, 8) },
-  { title: "Phim Việt Nam", english: "Vietnamese films", icon: "movie", params: { country: "Việt Nam" }, items: vietnameseShelf.map(id => filmById[id]) },
-  { title: "Phim Hàn Quốc", english: "Korean films", icon: "movie", params: { country: "Hàn Quốc" }, items: newest.filter(film => film.country === "Hàn Quốc").slice(0, 8) },
-  { title: "Rạp Nhà tuyển chọn", english: "Rạp Nhà picks", icon: "movie", params: { sort: "picks" }, items: selections.map(id => filmById[id]) },
-  { title: "Điểm cao từ nhà phát hành", english: "Top distributor ratings", icon: "star", params: { sort: "score" }, items: rated.slice(0, 8) },
+  { title: "Top 10 phim gần đây", english: "Top 10 recent releases", params: { collection: "top10" }, items: recentTop },
+  { title: "Phim chiếu rạp", english: "Theatrical films", params: { collection: "theatrical" }, items: theatricalShelf.slice(0, 8) },
+  { title: "Phim Việt Nam", english: "Vietnamese films", params: { country: "Việt Nam" }, items: vietnameseShelf.map(id => filmById[id]) },
+  { title: "Phim Hàn Quốc", english: "Korean films", params: { country: "Hàn Quốc" }, items: newest.filter(film => film.country === "Hàn Quốc").slice(0, 8) },
+  { title: "Rạp Nhà tuyển chọn", english: "Rạp Nhà picks", params: { sort: "picks" }, items: selections.map(id => filmById[id]) },
+  { title: "Điểm cao từ nhà phát hành", english: "Top distributor ratings", params: { sort: "score" }, items: rated.slice(0, 8) },
 ];
 
 const genres = [...new Set(films.flatMap(film => film.genres))].sort((a, b) => a.localeCompare(b, "vi"));
