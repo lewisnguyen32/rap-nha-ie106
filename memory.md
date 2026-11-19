@@ -8,6 +8,7 @@
 - Tất cả 23 tựa dùng trình phát mô phỏng bằng ảnh tĩnh với phát, tạm dừng, tua, toàn màn hình, âm lượng mô phỏng và lưu tiến độ. Trailer dùng YouTube. **Khi Cuộc Đời Cho Bạn Quả Quýt** có bốn phần, mỗi phần bốn tập, giữ đường dẫn và số tập liên tục từ 1 đến 16.
 - 60 ảnh của trình phát nằm trong `dist/assets/films/player/` và có kích thước 1920 × 1080. Banner Thám Tử Kiên dùng lại ảnh không chữ trong thư mục này. Các thẻ tập dùng ảnh thu nhỏ riêng.
 - Dùng **Hai Phượng** để thử tìm kiếm bằng `hai phuong` hoặc `Furie`, **Tết ở Làng Địa Ngục** để thử danh sách tập, và **Dùng tài khoản mẫu** để thử theo dõi và lịch sử.
+- Luồng **Quên mật khẩu?** bắt đầu từ trang Đăng nhập. Có thể dùng email đã đăng ký hoặc nút **Dùng email mẫu**. OTP `123456` mở bước đặt mật khẩu mới. OTP sai mở hộp thoại thất bại. Đường dẫn `#/dang-tai` mở riêng màn hình chờ cho báo cáo.
 
 ## Ghi chú còn mở
 

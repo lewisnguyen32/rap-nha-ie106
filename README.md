@@ -12,6 +12,7 @@ Lịch sử chỉnh sửa
 6. Bổ sung trình phát mô phỏng cho toàn bộ phim và tập, hỗ trợ phát, tạm dừng, tua và lưu tiến độ xem trên trình duyệt. Trailer mở riêng qua YouTube. (Phước)
 7. Bổ sung 60 ảnh Full HD cho trình phát, gồm 19 ảnh phim lẻ và 41 ảnh tập phim bộ. (Phước)
 8. Ổn định bố cục banner trang chủ khi chuyển phim để các nút và mục Top 10 phim gần đây giữ nguyên vị trí. Tiêu đề dài tự giảm cỡ chữ khi cần. Đổi ảnh nền Thám Tử Kiên sang bản không chữ và căn lại để khuôn mặt nhân vật hiển thị rõ trên desktop và mobile. (Phước)
+9. Thêm luồng quên mật khẩu, màn hình đang tải và hộp thoại kết quả.
 
 Xem lý do, kết quả và gợi ý minh họa cho từng mốc trong [lịch sử chỉnh sửa chi tiết](CHANGELOG.md).
 ## Giới hạn bản demo
@@ -44,6 +45,7 @@ Trên trang chủ, **Top 10 phim gần đây** xếp theo ngày phát hành tạ
 2. Mở **Tết ở Làng Địa Ngục** và chọn một trong 12 tập để thử phát, tạm dừng, tua, chỉnh mức âm lượng mô phỏng và toàn màn hình.
 3. Mở **Khi Cuộc Đời Cho Bạn Quả Quýt**, chọn Phần 4 rồi thử mở Tập 13. Nút **Trailer** mở video YouTube.
 4. Chọn **Đăng nhập → Dùng tài khoản mẫu** để xem theo dõi và lịch sử của Minh An. Có thể đăng ký bằng dữ liệu thử và mã OTP `123456`.
+5. Chọn **Đăng nhập → Quên mật khẩu? → Dùng email mẫu → Lấy mã xác nhận**. Dùng OTP `000000` để mở hộp thoại thất bại, rồi nhập `123456` và đặt mật khẩu mới để mở hộp thoại thành công. Mở đường dẫn `#/dang-tai` trên website để xem riêng màn hình Đang tải.
 
 ## Nguồn phim và hình ảnh
 

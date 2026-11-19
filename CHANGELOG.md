@@ -47,4 +47,10 @@ Các slide dùng chung chiều cao cho từng hàng nội dung, giúp nút **Chi
 
 Banner **Thám Tử Kiên** dùng ảnh nền phiên bản không chữ với vùng cắt riêng cho máy tính và điện thoại. Đã kiểm tra vị trí nút, mục Top 10 và cách hiển thị khuôn mặt khi chuyển qua cả ba slide (`40e0696`).
 
+## Hoàn thiện luồng quên mật khẩu
+
+Từ trang Đăng nhập, người dùng có thể mở **Quên mật khẩu?**, nhập email đã đăng ký trên trình duyệt hoặc điền email mẫu. Luồng dùng lại màn hình xác nhận OTP trước khi mở biểu mẫu mật khẩu mới. Sau khi lưu, người dùng có thể đăng nhập bằng mật khẩu mới vừa tạo.
+
+Màn hình **Đang tải** phản hồi trong lúc kiểm tra email hoặc lưu mật khẩu. Đường dẫn `#/dang-tai` mở riêng màn hình để minh họa trong báo cáo. Hộp thoại thất bại giải thích vấn đề và đưa tiêu điểm về trường cần sửa. Hộp thoại thành công xác nhận việc đổi mật khẩu và đưa người dùng về trang đăng nhập.
+
 Xem các luồng trình diễn trong [README](README.md) và các điểm còn mở trong [giới hạn bản demo](DEMO_LIMITATIONS.md).

@@ -4,9 +4,11 @@ const main = document.querySelector("#main");
 const header = document.querySelector("#site-header");
 const footer = document.querySelector("#site-footer");
 const trailer = document.querySelector("#trailer-dialog");
+const resultDialog = document.querySelector("#result-dialog");
 const toast = document.querySelector("#toast");
 const prefix = "rap-nha.v1.";
 const defaults = { language: "vi", autoplay: true };
+const demoOtp = "123456";
 
 function read(key, fallback) {
   try { return JSON.parse(localStorage.getItem(prefix + key)) ?? fallback; }
@@ -14,13 +16,19 @@ function read(key, fallback) {
 }
 
 function write(key, value) {
-  try { localStorage.setItem(prefix + key, JSON.stringify(value)); }
-  catch { /* Browser storage may be disabled. */ }
+  try {
+    localStorage.setItem(prefix + key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 let user = read("session", null);
 let settings = { ...defaults, ...read("settings", {}) };
 let draft;
+let recovery;
+let signInEmail = "";
 let returnTo = "";
 let pendingFollow = "";
 let heroIndex = 0;
@@ -83,6 +91,7 @@ const symbols = {
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18z"/>',
   logout: '<path d="M11 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h6m-1-8h10m-4-4 4 4-4 4"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
+  lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 5v2"/>',
   check: '<path d="m5 12 4 4L19 6"/>',
   eye: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2"/>',
   movie: '<rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 9h18M7 5l2 4m5-4 2 4m-6 3 5 3-5 3z"/>',
@@ -695,6 +704,35 @@ function openTrailer(film, trigger) {
   trailer.showModal();
 }
 
+function showRecoveryResult({ title, message, success = false, input }) {
+  const hash = location.hash;
+  resultDialog.dataset.outcome = success ? "success" : "failure";
+  resultDialog.innerHTML = `<form method="dialog">
+    <button class="icon-button result-close" type="submit" aria-label="${bi("Đóng hộp thoại", "Close dialog")}">${icon("x")}</button>
+    <span class="result-icon">${icon(success ? "check" : "info", 28)}</span>
+    <h2 id="result-title">${escapeHtml(title)}</h2>
+    <p id="result-message">${escapeHtml(message)}</p>
+    <button class="button primary full" type="submit" autofocus>${success ? bi("Về đăng nhập", "Back to sign in") : bi("Thử lại", "Try again")}</button>
+  </form>`;
+  resultDialog.addEventListener("close", () => {
+    if (location.hash !== hash) return;
+    if (success) go("#/dang-nhap");
+    else input?.focus();
+  }, { once: true });
+  resultDialog.showModal();
+}
+
+function loadingPage(message = "") {
+  return `<section class="loading-stage" aria-labelledby="loading-title">
+    <div class="loading-content">
+      <span class="loading-mark" aria-hidden="true"><img src="assets/icon.svg" alt="" width="41" height="41"></span>
+      <h1 id="loading-title" tabindex="-1">${bi("Đang tải", "Loading")}</h1>
+      <p role="status">${escapeHtml(message || bi("Màn hình hiển thị khi Rạp Nhà đang xử lý yêu cầu tài khoản.", "This screen appears while Rạp Nhà processes an account request."))}</p>
+      ${message ? "" : `<a class="button secondary" href="#/dang-nhap">${bi("Quay lại đăng nhập", "Back to sign in")}</a>`}
+    </div>
+  </section>`;
+}
+
 function field(name, label, options = {}) {
   const { type = "text", value = "", autocomplete = "", placeholder = "", min = "", max = 100, required = true } = options;
   return `<div class="form-field"><label for="field-${name}">${label}</label><div class="field-wrap">
@@ -711,9 +749,10 @@ function authPage(kind) {
     ${pageTitle(name, register ? bi("Tạo tài khoản để lưu phim và xem tiếp bất cứ lúc nào.", "Create an account to save films and keep watching.") : bi("Tiếp tục hành trình xem phim của bạn.", "Continue watching your favourite films."))}
     <form id="auth-form" data-kind="${kind}">
       ${register ? field("name", bi("Tên hiển thị", "Display name"), { value: draft?.name, autocomplete: "nickname", placeholder: "Minh An", max: 45 }) : ""}
-      ${field("email", "Email", { type: "email", value: register ? draft?.email : "", autocomplete: "email", placeholder: "ban@example.com" })}
+      ${field("email", "Email", { type: "email", value: register ? draft?.email : signInEmail, autocomplete: "email", placeholder: "ban@example.com" })}
       ${field("password", bi("Mật khẩu", "Password"), { type: "password", autocomplete: register ? "new-password" : "current-password", min: register ? 8 : "", placeholder: register ? bi("Tối thiểu 8 ký tự", "At least 8 characters") : bi("Nhập mật khẩu", "Enter your password") })}
       ${register ? field("confirm", bi("Nhập lại mật khẩu", "Confirm password"), { type: "password", autocomplete: "new-password", min: 8, placeholder: bi("Nhập lại mật khẩu", "Re-enter your password") }) : ""}
+      ${register ? "" : `<div class="auth-forgot"><a href="#/quen-mat-khau" data-action="forgot">${bi("Quên mật khẩu?", "Forgot password?")}</a></div>`}
       <p class="form-error" role="alert" hidden></p>
       <button class="button primary full" type="submit">${register ? bi("Tiếp tục", "Continue") : name} ${icon("arrow", 17)}</button>
     </form>
@@ -722,26 +761,65 @@ function authPage(kind) {
   </div></section>`;
 }
 
-function otpPage() {
-  if (!draft) return `<div class="frame inner-page">${emptyState("mail", bi("Xác nhận OTP", "Confirm your code"), bi("Hãy điền thông tin đăng ký để nhận mã xác nhận mẫu.", "Complete the registration form to get a demo verification code."), "#/dang-ky", bi("Quay lại đăng ký", "Back to registration"))}</div>`;
+function forgotPasswordPage() {
   return `<section class="auth-stage"><div class="auth-card">
-    <a class="inline-back" href="#/dang-ky">${icon("back", 17)}${bi("Quay lại đăng ký", "Back to registration")}</a>
-    <span class="auth-icon">${icon("mail", 25)}</span>
-    ${pageTitle(bi("Xác nhận OTP", "Confirm your code"), bi("Nhập mã 6 chữ số để xác nhận email", "Enter the 6-digit code to verify") + ` <strong>${escapeHtml(draft.email)}</strong>.`)}
-    <form id="otp-form">
-      <div class="form-field"><label for="otp">${bi("Mã xác nhận", "Verification code")}</label><input name="otp" id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required></div>
-      <p class="demo-note">${bi("Mã OTP dùng thử", "Demo verification code")} <strong>123456</strong></p>
+    <a class="inline-back" href="#/dang-nhap">${icon("back", 17)}${bi("Quay lại đăng nhập", "Back to sign in")}</a>
+    <span class="auth-icon">${icon("lock", 25)}</span>
+    ${pageTitle(bi("Quên mật khẩu", "Forgot password"), bi("Nhập email tài khoản để lấy mã xác nhận dùng thử.", "Enter your account email to get a demo verification code."))}
+    <form id="recovery-form">
+      ${field("email", "Email", { type: "email", value: recovery?.email ?? signInEmail, autocomplete: "email", placeholder: "ban@example.com" })}
+      <button class="button primary full" type="submit">${bi("Lấy mã xác nhận", "Get verification code")}</button>
+      <p class="auth-alt">${bi("Muốn thử nhanh?", "Just trying it out?")} <button class="text-button" type="button" data-action="recovery-demo">${bi("Dùng email mẫu", "Use demo email")}</button></p>
+    </form>
+  </div></section>`;
+}
+
+function resetPasswordPage() {
+  if (!recovery?.verified) return `<div class="frame inner-page">${emptyState("lock", bi("Đặt lại mật khẩu", "Reset password"), bi("Hãy xác nhận mã OTP trước khi đặt mật khẩu mới.", "Verify your code before setting a new password."), "#/quen-mat-khau", bi("Quay lại quên mật khẩu", "Back to password recovery"))}</div>`;
+  return `<section class="auth-stage"><div class="auth-card">
+    <a class="inline-back" href="#/quen-mat-khau/xac-nhan">${icon("back", 17)}${bi("Quay lại xác nhận", "Back to verification")}</a>
+    <span class="auth-icon">${icon("lock", 25)}</span>
+    ${pageTitle(bi("Đặt lại mật khẩu", "Reset password"), bi("Tạo mật khẩu mới cho", "Create a new password for") + ` <strong>${escapeHtml(recovery.email)}</strong>.`)}
+    <form id="reset-password-form">
+      ${field("password", bi("Mật khẩu mới", "New password"), { type: "password", autocomplete: "new-password", min: 8, placeholder: bi("Tối thiểu 8 ký tự", "At least 8 characters") })}
+      ${field("confirm", bi("Nhập lại mật khẩu", "Confirm password"), { type: "password", autocomplete: "new-password", min: 8, placeholder: bi("Nhập lại mật khẩu mới", "Re-enter your new password") })}
       <p class="form-error" role="alert" hidden></p>
+      <button class="button primary full" type="submit">${bi("Đặt lại mật khẩu", "Reset password")}</button>
+    </form>
+  </div></section>`;
+}
+
+function otpPage(challenge, recovering) {
+  const title = bi("Xác nhận OTP", "Confirm your code");
+  const back = recovering ? "#/quen-mat-khau" : "#/dang-ky";
+  const backLabel = recovering ? bi("Đổi email", "Change email") : bi("Quay lại đăng ký", "Back to registration");
+  if (!challenge) {
+    const message = recovering
+      ? bi("Nhập email ở trang Quên mật khẩu để lấy mã xác nhận mẫu.", "Enter your email on the password recovery page to get a demo code.")
+      : bi("Hãy điền thông tin đăng ký để nhận mã xác nhận mẫu.", "Complete the registration form to get a demo verification code.");
+    return `<div class="frame inner-page">${emptyState("mail", title, message, back, backLabel)}</div>`;
+  }
+  const message = recovering
+    ? bi("Nhập mã 6 chữ số để đặt lại mật khẩu cho", "Enter the 6-digit code to reset the password for")
+    : bi("Nhập mã 6 chữ số để xác nhận email", "Enter the 6-digit code to verify");
+  return `<section class="auth-stage"><div class="auth-card">
+    <a class="inline-back" href="${back}">${icon("back", 17)}${backLabel}</a>
+    <span class="auth-icon">${icon("mail", 25)}</span>
+    ${pageTitle(title, message + ` <strong>${escapeHtml(challenge.email)}</strong>.`)}
+    <form id="otp-form" data-purpose="${recovering ? "recovery" : "registration"}">
+      <div class="form-field"><label for="otp">${bi("Mã xác nhận", "Verification code")}</label><input name="otp" id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required></div>
+      <p class="demo-note">${bi("Mã OTP dùng thử", "Demo verification code")} <strong>${demoOtp}</strong></p>
+      ${recovering ? "" : '<p class="form-error" role="alert" hidden></p>'}
       <button class="button primary full" type="submit">${bi("Xác nhận", "Confirm")} ${icon("arrow", 17)}</button>
     </form>
     <button class="text-button resend" type="button" data-action="resend">${bi("Gửi lại mã", "Resend code")}</button>
   </div></section>`;
 }
 
-function updateResend() {
+function updateResend(challenge) {
   const button = main.querySelector("[data-action=resend]");
-  if (!button || !draft) return;
-  const remaining = Math.max(0, Math.ceil((draft.resendAt - Date.now()) / 1000));
+  if (!button || !challenge) return;
+  const remaining = Math.max(0, Math.ceil((challenge.resendAt - Date.now()) / 1000));
   button.disabled = remaining > 0;
   button.textContent = remaining ? bi(`Gửi lại mã sau 00:${String(remaining).padStart(2, "0")}`, `Resend code in ${remaining}s`) : bi("Gửi lại mã", "Resend code");
 }
@@ -751,6 +829,11 @@ async function digest(password, salt) {
   const key = await crypto.subtle.importKey("raw", bytes, "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: new TextEncoder().encode(salt), iterations: 120000 }, key, 256);
   return Array.from(new Uint8Array(bits), num => num.toString(16).padStart(2, "0")).join("");
+}
+
+async function passwordRecord(password) {
+  const salt = crypto.randomUUID();
+  return { salt, hash: await digest(password, salt) };
 }
 
 function formError(form, message) {
@@ -776,6 +859,7 @@ function finishSignIn(account) {
   returnTo = "";
   pendingFollow = "";
   draft = undefined;
+  signInEmail = "";
   go(previous || "#/");
   notify(follow ? bi("Đã thêm vào danh sách theo dõi.", "Added to your watchlist.") : bi(`Xin chào, ${user.name}!`, `Hello, ${user.name}!`));
 }
@@ -793,15 +877,14 @@ async function submitAuth(form) {
       if (name.length < 2) return formError(form, bi("Tên hiển thị cần ít nhất 2 ký tự.", "Use at least 2 characters for your display name."));
       if (password !== data.get("confirm")) return formError(form, bi("Mật khẩu nhập lại chưa khớp.", "Passwords do not match."));
       if (email === demoUser.email || read(`account.${email}`, null)) return formError(form, bi("Email này đã được dùng trên trình duyệt này.", "This email is already registered in this browser."));
-      const salt = crypto.randomUUID();
-      const hash = await digest(password, salt);
+      const credentials = await passwordRecord(password);
       if (!form.isConnected) return;
-      draft = { name, email, hash, salt, resendAt: Date.now() + 30000 };
+      draft = { name, email, ...credentials, resendAt: Date.now() + 30000 };
       go("#/otp");
     } else {
       const account = read(`account.${email}`, null);
       if (!account || await digest(password, account.salt) !== account.hash) return formError(form, bi("Email hoặc mật khẩu chưa đúng. Bạn cũng có thể dùng tài khoản mẫu.", "The email or password is incorrect. You can also use the demo account."));
-      if (form.isConnected) finishSignIn(account);
+      if (form.isConnected) finishSignIn(email === demoUser.email ? { ...account, name: read("demo-name", demoUser.name) } : account);
     }
   } catch {
     formError(form, bi("Không thể xử lý biểu mẫu. Hãy thử trong bản xem trước qua localhost hoặc HTTPS.", "This form requires a localhost or HTTPS preview."));
@@ -811,6 +894,107 @@ async function submitAuth(form) {
 }
 
 const normalizeEmail = value => String(value).trim().toLowerCase();
+
+const recoveryAccount = email => read(`account.${email}`, email === demoUser.email ? demoUser : null);
+
+async function submitRecovery(form) {
+  const reset = form.id === "reset-password-form";
+  const button = form.querySelector("[type=submit]");
+  if (button.disabled || (reset && !recovery?.verified)) return;
+  const data = new FormData(form);
+  const email = reset ? recovery.email : normalizeEmail(data.get("email"));
+  const password = data.get("password");
+  const input = form.elements.namedItem(reset ? "password" : "email");
+  if (reset) {
+    if (password !== data.get("confirm")) {
+      formError(form, bi("Mật khẩu nhập lại chưa khớp.", "Passwords do not match."));
+      form.elements.namedItem("confirm").focus();
+      return;
+    }
+    formError(form, "");
+  }
+
+  const stage = form.closest(".auth-stage");
+  const hash = location.hash;
+  const isCurrent = () => form.isConnected && location.hash === hash;
+  const message = reset ? bi("Đang lưu mật khẩu mới…", "Saving your new password…") : bi("Đang kiểm tra email…", "Checking your email…");
+  button.disabled = true;
+  stage.hidden = true;
+  stage.insertAdjacentHTML("afterend", loadingPage(message));
+  const loading = stage.nextElementSibling;
+  loading.querySelector("h1").focus({ preventScroll: true });
+
+  let credentials;
+  let storageError = false;
+  try {
+    await new Promise(resolve => setTimeout(resolve, 650));
+    if (!isCurrent()) return;
+    if (reset) credentials = await passwordRecord(password);
+  } catch {
+    storageError = true;
+  } finally {
+    loading.remove();
+    stage.hidden = false;
+    button.disabled = false;
+  }
+  if (!isCurrent()) return;
+
+  const account = recoveryAccount(email);
+  if (!account) {
+    showRecoveryResult({
+      title: bi("Không tìm thấy tài khoản", "Account not found"),
+      message: bi("Email này chưa được đăng ký trên trình duyệt này. Hãy kiểm tra email hoặc dùng email mẫu.", "This email is not registered in this browser. Check your email or use the demo email."),
+      input,
+    });
+  } else if (!reset) {
+    recovery = { email, resendAt: Date.now() + 30000, verified: false };
+    go("#/quen-mat-khau/xac-nhan");
+  } else if (storageError || !write(`account.${email}`, { ...account, ...credentials })) {
+    showRecoveryResult({
+      title: bi("Chưa lưu được mật khẩu", "Password could not be saved"),
+      message: bi("Hãy bật lưu trữ của trình duyệt và thử lại trên localhost hoặc HTTPS.", "Allow browser storage and try again on localhost or HTTPS."),
+      input,
+    });
+  } else {
+    signInEmail = email;
+    recovery = undefined;
+    form.reset();
+    showRecoveryResult({
+      title: bi("Đặt lại mật khẩu thành công", "Password reset successful"),
+      message: bi("Bạn có thể đăng nhập bằng mật khẩu mới.", "You can now sign in with your new password."),
+      success: true,
+    });
+  }
+}
+
+function submitOtp(form) {
+  const recovering = form.dataset.purpose === "recovery";
+  const challenge = recovering ? recovery : draft;
+  if (!challenge) return;
+  const input = form.elements.namedItem("otp");
+  if (input.value !== demoOtp) {
+    if (recovering) {
+      showRecoveryResult({
+        title: bi("Mã xác nhận chưa đúng", "Incorrect verification code"),
+        message: bi("Hãy nhập lại mã OTP dùng thử hiển thị trên màn hình.", "Try again using the demo verification code on the screen."),
+        input,
+      });
+    } else {
+      formError(form, bi("Mã chưa đúng. Hãy nhập mã OTP dùng thử ở trên.", "Incorrect code. Enter the demo verification code above."));
+      input.focus();
+    }
+    return;
+  }
+  if (recovering) {
+    recovery.verified = true;
+    go("#/quen-mat-khau/dat-lai");
+    return;
+  }
+  const { name, email, hash, salt } = challenge;
+  const account = { name, email, hash, salt, since: now() };
+  write(`account.${email}`, account);
+  finishSignIn(account);
+}
 
 function accountPage(page) {
   const [, , title] = accountLinks().find(([id]) => id === page);
@@ -1052,11 +1236,14 @@ function render({ focus = false, scroll = true } = {}) {
     location.replace("#/dang-nhap");
     return;
   }
-  if (!user && !["dang-nhap", "dang-ky", "otp"].includes(page)) {
+  if (!user && !["dang-nhap", "dang-ky", "otp", "quen-mat-khau"].includes(page)) {
     returnTo = "";
     pendingFollow = "";
   }
   if (trailer.open) trailer.close();
+  if (resultDialog.open) resultDialog.close();
+  if (page !== "quen-mat-khau") recovery = undefined;
+  else if (recovery && id !== "dat-lai") recovery.verified = false;
   disposePage();
   disposePage = () => {};
   document.documentElement.lang = settings.language;
@@ -1077,12 +1264,18 @@ function render({ focus = false, scroll = true } = {}) {
     main.innerHTML = playerPage(film, episode);
     disposePage = bindPlayer(main.querySelector("[data-player]"), film, episode);
   } else if (page === "dang-nhap" || page === "dang-ky") main.innerHTML = authPage(page);
-  else if (page === "otp") {
-    main.innerHTML = otpPage();
-    updateResend();
-    const timer = setInterval(updateResend, 250);
-    disposePage = () => clearInterval(timer);
-  } else if (accountPages.includes(page)) main.innerHTML = accountPage(page);
+  else if (page === "otp" || (page === "quen-mat-khau" && id === "xac-nhan")) {
+    const recovering = page === "quen-mat-khau";
+    const challenge = recovering ? recovery : draft;
+    main.innerHTML = otpPage(challenge, recovering);
+    if (challenge) {
+      updateResend(challenge);
+      const timer = setInterval(() => updateResend(challenge), 250);
+      disposePage = () => clearInterval(timer);
+    }
+  } else if (page === "quen-mat-khau") main.innerHTML = id === "dat-lai" ? resetPasswordPage() : forgotPasswordPage();
+  else if (page === "dang-tai") main.innerHTML = loadingPage();
+  else if (accountPages.includes(page)) main.innerHTML = accountPage(page);
   else if (page === "gioi-thieu") main.innerHTML = aboutPage();
   else if (page === "faq") main.innerHTML = faqPage();
   else if (page === "dieu-khoan") main.innerHTML = termsPage();
@@ -1149,17 +1342,12 @@ document.addEventListener("submit", event => {
   } else if (form.id === "auth-form") {
     event.preventDefault();
     submitAuth(form);
-  } else if (form.id === "otp-form" && draft) {
+  } else if (form.id === "recovery-form" || form.id === "reset-password-form") {
     event.preventDefault();
-    if (new FormData(form).get("otp") !== "123456") {
-      formError(form, bi("Mã chưa đúng. Hãy nhập mã OTP dùng thử ở trên.", "Incorrect code. Enter the demo verification code above."));
-      form.querySelector("#otp").focus();
-      return;
-    }
-    const { name, email, hash, salt } = draft;
-    const account = { name, email, hash, salt, since: now() };
-    write(`account.${email}`, account);
-    finishSignIn(account);
+    submitRecovery(form);
+  } else if (form.id === "otp-form") {
+    event.preventDefault();
+    submitOtp(form);
   } else if (form.id === "profile-form") {
     event.preventDefault();
     const name = String(new FormData(form).get("name")).trim();
@@ -1229,7 +1417,7 @@ document.addEventListener("change", event => {
 });
 
 document.addEventListener("keydown", event => {
-  if (trailer.open) return;
+  if (trailer.open || resultDialog.open) return;
   const input = document.querySelector("#search-input");
   const editable = event.target.matches?.("input, textarea, select, [contenteditable=true]");
   if (event.key === "/" && !editable && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -1299,11 +1487,18 @@ document.addEventListener("click", event => {
     button.setAttribute("aria-pressed", String(visible));
     button.title = visible ? bi("Ẩn mật khẩu", "Hide password") : bi("Hiện mật khẩu", "Show password");
     button.setAttribute("aria-label", button.title);
+  } else if (action === "forgot") signInEmail = main.querySelector("#field-email").value.trim();
+  else if (action === "recovery-demo") {
+    const email = main.querySelector("#field-email");
+    email.value = demoUser.email;
+    email.focus();
   } else if (action === "demo") finishSignIn({ ...demoUser, name: read("demo-name", demoUser.name) });
-  else if (action === "resend" && draft) {
-    draft.resendAt = Date.now() + 30000;
-    updateResend();
-    notify(bi("Mã dùng thử của bạn là 123456.", "Your demo code is 123456."));
+  else if (action === "resend") {
+    const challenge = route().page === "quen-mat-khau" ? recovery : draft;
+    if (!challenge || button.disabled) return;
+    challenge.resendAt = Date.now() + 30000;
+    updateResend(challenge);
+    notify(bi(`Mã dùng thử của bạn là ${demoOtp}.`, `Your demo code is ${demoOtp}.`));
   } else if (action === "logout") {
     user = null;
     write("session", null);

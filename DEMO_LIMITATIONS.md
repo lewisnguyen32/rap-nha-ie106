@@ -4,7 +4,7 @@
 
 - **Trình phát.** Mỗi phim lẻ và tập phim bộ hiển thị một ảnh tĩnh với thời lượng theo danh mục. Nút phát, tạm dừng, tua, âm lượng và chuyển tập phục vụ luồng mô phỏng. Video và âm thanh của trailer được phát qua YouTube và cần kết nối Internet.
 - **Danh sách tập.** Bốn phim bộ có tên, ảnh và thời lượng theo từng tập. **Khi Cuộc Đời Cho Bạn Quả Quýt** có bộ chọn phần với bốn phần, mỗi phần bốn tập.
-- **Tài khoản và dữ liệu cá nhân.** Đăng ký và OTP được mô phỏng. Tài khoản, danh sách theo dõi, tiến độ từng phim hoặc tập và cài đặt được lưu trong trình duyệt đang dùng. Email liên hệ là địa chỉ minh họa.
+- **Tài khoản và dữ liệu cá nhân.** Đăng ký và đặt lại mật khẩu dùng OTP mẫu `123456` hiển thị trên giao diện. Tài khoản, danh sách theo dõi, tiến độ từng phim hoặc tập và cài đặt được lưu trong trình duyệt đang dùng. Email liên hệ là địa chỉ minh họa.
 
 ## Nội dung đánh giá ở Chương 4
 
