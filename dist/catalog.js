@@ -213,7 +213,7 @@ const homeRows = [
 const genres = [...new Set(films.flatMap(film => film.genres))].sort((a, b) => a.localeCompare(b, "vi"));
 const countries = [...new Set(films.map(film => film.country))];
 const years = [...new Set(films.map(film => film.year))].sort((a, b) => b - a);
-const demoUser = { name: "Minh An", email: "minhan@example.com", since: "2026-11-06" };
+const demoUser = { name: "Minh Quân", email: "minhquan@example.com", since: "2026-11-06" };
 const demoFollows = [
   { id: "tet-o-lang-dia-nguc", added: "2026-11-13" }, { id: "tears-of-steel", added: "2026-11-12" },
   { id: "mai", added: "2026-11-08" }, { id: "tham-tu-kien", added: "2026-11-06" },

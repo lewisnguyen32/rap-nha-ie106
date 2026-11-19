@@ -9,6 +9,7 @@ const toast = document.querySelector("#toast");
 const prefix = "rap-nha.v1.";
 const defaults = { language: "vi", autoplay: true };
 const demoOtp = "123456";
+const legacyDemoEmail = "minhan@example.com";
 
 function read(key, fallback) {
   try { return JSON.parse(localStorage.getItem(prefix + key)) ?? fallback; }
@@ -24,7 +25,27 @@ function write(key, value) {
   }
 }
 
+function availableDemoEmail() {
+  const [name, domain] = demoUser.email.split("@");
+  let email = demoUser.email;
+  for (let suffix = 1; read(`account.${email}`, null); suffix += 1) {
+    email = `${name}+demo${suffix}@${domain}`;
+  }
+  return email;
+}
+
+const demoEmail = availableDemoEmail();
+
+function demoProfile() {
+  const name = read("demo-name", demoUser.name);
+  return { ...demoUser, email: demoEmail, name: name === "Minh An" ? demoUser.name : name };
+}
+
 let user = read("session", null);
+if (user?.email === legacyDemoEmail) {
+  user = demoProfile();
+  write("session", user);
+}
 let settings = { ...defaults, ...read("settings", {}) };
 let draft;
 let recovery;
@@ -86,7 +107,7 @@ const symbols = {
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/>',
   bookmark: '<path d="M6 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v15l-6-4-6 4z"/>',
-  settings: '<circle cx="12" cy="12" r="3"/><path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h5l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3z"/>',
+  settings: '<path d="M10.25 2.75h3.5l.45 2.3 1.15.47 1.95-1.32 2.5 2.5-1.32 1.95.47 1.15 2.3.45v3.5l-2.3.45-.47 1.15 1.32 1.95-2.5 2.5-1.95-1.32-1.15.47-.45 2.3h-3.5l-.45-2.3-1.15-.47-1.95 1.32-2.5-2.5 1.32-1.95-.47-1.15-2.3-.45v-3.5l2.3-.45.47-1.15-1.32-1.95 2.5-2.5 1.95 1.32 1.15-.47z"/><circle cx="12" cy="12" r="3.2"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18z"/>',
   logout: '<path d="M11 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h6m-1-8h10m-4-4 4 4-4 4"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
@@ -114,6 +135,7 @@ const accountLinks = () => [
   ["cai-dat", "settings", bi("Cài đặt", "Settings")],
 ];
 const avatar = (className = "") => `<span class="avatar ${className}" aria-hidden="true">${user ? escapeHtml(initials(user.name)) : icon("user", 17)}</span>`;
+const languageName = "Ngôn ngữ / Language";
 
 function notify(message) {
   window.clearTimeout(toastTimer);
@@ -164,17 +186,30 @@ function shell(state) {
       </div>
       <div class="popover suggestions" id="suggestions" role="listbox" aria-label="${bi("Gợi ý phim", "Film suggestions")}" hidden></div>
     </form>
-    <div class="account-wrap">${user
+    <div class="header-actions">
+      <div class="language-wrap">
+        <button class="language-toggle" type="button" data-action="language" aria-label="${languageName}" title="${languageName}" aria-expanded="false" aria-controls="language-menu">
+          ${icon("globe", 18)}
+        </button>
+        <div id="language-menu" class="popover language-menu" hidden>
+          <p id="language-menu-label" class="language-menu-label"><span lang="vi">Ngôn ngữ</span> / <span lang="en">Language</span></p>
+          <div class="language-options" role="radiogroup" aria-labelledby="language-menu-label">
+            ${[["vi", "Tiếng Việt"], ["en", "English"]].map(([value, label]) => `<label class="language-option">
+              <input type="radio" name="header-language" id="header-language-${value}" value="${value}" data-pref="language" ${settings.language === value ? "checked" : ""}>
+              <span lang="${value}">${label}</span>
+            </label>`).join("")}
+          </div>
+        </div>
+      </div>
+      <div class="account-wrap">${user
       ? `<button type="button" class="avatar-button" data-action="avatar" aria-expanded="false" aria-controls="avatar-menu" aria-label="${bi("Menu tài khoản", "Account menu")}">${avatar()}${icon("down", 14)}</button>
           <div id="avatar-menu" class="popover avatar-menu" hidden>
             <div class="menu-identity">${avatar()}<div><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.email)}</small></div></div>
             ${accountLinks().map(([id, glyph, label]) => `<a href="#/${id}">${icon(glyph, 18)}${label}</a>`).join("")}
-            <div class="menu-language">${icon("globe", 18)}<label class="sr-only" for="menu-language">${bi("Ngôn ngữ giao diện", "Interface language")}</label>
-              <select id="menu-language" data-pref="language"><option value="vi" ${settings.language === "vi" ? "selected" : ""}>Tiếng Việt</option><option value="en" ${settings.language === "en" ? "selected" : ""}>English</option></select>
-            </div>
             <button type="button" class="logout" data-action="logout">${icon("logout", 18)}${bi("Đăng xuất", "Sign out")}</button>
           </div>`
       : `<a class="login-link" href="#/dang-nhap" aria-label="${bi("Đăng nhập", "Sign in")}">${icon("user", 17)}<span>${bi("Đăng nhập", "Sign in")}</span></a>`}</div>
+    </div>
   </div>`;
   footer.innerHTML = `<div class="frame footer-content"><div>${brand()}<p>© 2026 Rạp Nhà · ${bi("Đồ án IE106", "IE106 course project")}</p></div>
     <nav aria-label="${bi("Hỗ trợ", "Support")}"><a href="#/gioi-thieu">${bi("Giới thiệu", "About")}</a><a href="#/gioi-thieu/lien-he">${bi("Liên hệ", "Contact")}</a><a href="#/faq">${bi("Câu hỏi thường gặp", "FAQ")}</a><a href="#/dieu-khoan">${bi("Điều khoản", "Terms")}</a></nav>
@@ -190,7 +225,7 @@ function matches(query, film) {
 }
 
 function hidePopovers(except) {
-  for (const [id, action] of [["avatar-menu", "avatar"], ["genre-menu", "genres"], ["suggestions", null]]) {
+  for (const [id, action] of [["avatar-menu", "avatar"], ["language-menu", "language"], ["genre-menu", "genres"], ["suggestions", null]]) {
     const popover = document.getElementById(id);
     if (!popover || id === except) continue;
     popover.hidden = true;
@@ -489,9 +524,10 @@ function catalogPage(params) {
   </div>`;
 }
 
-const accountKey = kind => `${kind}.${user?.email ?? "guest"}`;
+// Retain the original storage keys for the renamed demo account.
+const accountKey = (kind, email = user?.email ?? "guest") => `${kind}.${email === demoEmail ? legacyDemoEmail : email}`;
 function catalogRecords(kind, demoRecords) {
-  const fallback = user?.email === demoUser.email ? demoRecords : [];
+  const fallback = user?.email === demoEmail ? demoRecords : [];
   const records = read(accountKey(kind), fallback);
   const current = records.filter(item => filmById[item.id]);
   return current.length || !records.length ? current : fallback;
@@ -946,7 +982,7 @@ function authPage(kind) {
     <span class="auth-icon">${icon(register ? "movie" : "user", 25)}</span>
     ${pageTitle(name, register ? bi("Tạo tài khoản để lưu phim và xem tiếp bất cứ lúc nào.", "Create an account to save films and keep watching.") : bi("Tiếp tục hành trình xem phim của bạn.", "Continue watching your favourite films."))}
     <form id="auth-form" data-kind="${kind}">
-      ${register ? field("name", bi("Tên hiển thị", "Display name"), { value: draft?.name, autocomplete: "nickname", placeholder: "Minh An", max: 45 }) : ""}
+      ${register ? field("name", bi("Tên hiển thị", "Display name"), { value: draft?.name, autocomplete: "nickname", placeholder: demoUser.name, max: 45 }) : ""}
       ${field("email", "Email", { type: "email", value: register ? draft?.email : signInEmail, autocomplete: "email", placeholder: "ban@example.com" })}
       ${field("password", bi("Mật khẩu", "Password"), { type: "password", autocomplete: register ? "new-password" : "current-password", min: register ? 8 : "", placeholder: register ? bi("Tối thiểu 8 ký tự", "At least 8 characters") : bi("Nhập mật khẩu", "Enter your password") })}
       ${register ? field("confirm", bi("Nhập lại mật khẩu", "Confirm password"), { type: "password", autocomplete: "new-password", min: 8, placeholder: bi("Nhập lại mật khẩu", "Re-enter your password") }) : ""}
@@ -1074,15 +1110,15 @@ async function submitAuth(form) {
       const name = String(data.get("name")).trim();
       if (name.length < 2) return formError(form, bi("Tên hiển thị cần ít nhất 2 ký tự.", "Use at least 2 characters for your display name."));
       if (password !== data.get("confirm")) return formError(form, bi("Mật khẩu nhập lại chưa khớp.", "Passwords do not match."));
-      if (email === demoUser.email || read(`account.${email}`, null)) return formError(form, bi("Email này đã được dùng trên trình duyệt này.", "This email is already registered in this browser."));
+      if (email === demoEmail || read(accountKey("account", email), null)) return formError(form, bi("Email này đã được dùng trên trình duyệt này.", "This email is already registered in this browser."));
       const credentials = await passwordRecord(password);
       if (!form.isConnected) return;
       draft = { name, email, ...credentials, resendAt: Date.now() + 30000 };
       go("#/otp");
     } else {
-      const account = read(`account.${email}`, null);
+      const account = read(accountKey("account", email), null);
       if (!account || await digest(password, account.salt) !== account.hash) return formError(form, bi("Email hoặc mật khẩu chưa đúng. Bạn cũng có thể dùng tài khoản mẫu.", "The email or password is incorrect. You can also use the demo account."));
-      if (form.isConnected) finishSignIn(email === demoUser.email ? { ...account, name: read("demo-name", demoUser.name) } : account);
+      if (form.isConnected) finishSignIn(email === demoEmail ? demoProfile() : account);
     }
   } catch {
     formError(form, bi("Không thể xử lý biểu mẫu. Hãy thử trong bản xem trước qua localhost hoặc HTTPS.", "This form requires a localhost or HTTPS preview."));
@@ -1091,9 +1127,12 @@ async function submitAuth(form) {
   }
 }
 
-const normalizeEmail = value => String(value).trim().toLowerCase();
+const normalizeEmail = value => {
+  const email = String(value).trim().toLowerCase();
+  return email === legacyDemoEmail ? demoEmail : email;
+};
 
-const recoveryAccount = email => read(`account.${email}`, email === demoUser.email ? demoUser : null);
+const recoveryAccount = email => read(accountKey("account", email), email === demoEmail ? demoProfile() : null);
 
 async function submitRecovery(form) {
   const reset = form.id === "reset-password-form";
@@ -1147,7 +1186,7 @@ async function submitRecovery(form) {
   } else if (!reset) {
     recovery = { email, resendAt: Date.now() + 30000, verified: false };
     go("#/quen-mat-khau/xac-nhan");
-  } else if (storageError || !write(`account.${email}`, { ...account, ...credentials })) {
+  } else if (storageError || !write(accountKey("account", email), { ...account, ...(email === demoEmail ? demoProfile() : {}), ...credentials })) {
     showRecoveryResult({
       title: bi("Chưa lưu được mật khẩu", "Password could not be saved"),
       message: bi("Hãy bật lưu trữ của trình duyệt và thử lại trên localhost hoặc HTTPS.", "Allow browser storage and try again on localhost or HTTPS."),
@@ -1190,8 +1229,63 @@ function submitOtp(form) {
   }
   const { name, email, hash, salt } = challenge;
   const account = { name, email, hash, salt, since: now() };
-  write(`account.${email}`, account);
+  write(accountKey("account", email), account);
   finishSignIn(account);
+}
+
+async function submitPasswordChange(form) {
+  const submit = form.querySelector("[type=submit]");
+  if (!user || submit.disabled) return;
+
+  const signedInUser = user;
+  const key = accountKey("account");
+  const account = read(key, null);
+  const data = new FormData(form);
+  const fields = form.elements;
+  const current = fields.namedItem("current-password");
+  const password = String(data.get("new-password"));
+  const retryMessage = bi("Thông tin mật khẩu đã thay đổi. Tải lại trang rồi thử lại.", "Your password information changed. Reload the page and try again.");
+  const isCurrent = () => form.isConnected && user === signedInUser;
+  const fail = (message, field) => {
+    if (!isCurrent()) return;
+    formError(form, message);
+    field?.focus();
+  };
+
+  if (password.length < 8) return fail(bi("Mật khẩu mới cần ít nhất 8 ký tự.", "Use at least 8 characters for your new password."), fields.namedItem("new-password"));
+  if (password !== data.get("confirm-password")) return fail(bi("Mật khẩu nhập lại chưa khớp.", "Passwords do not match."), fields.namedItem("confirm-password"));
+  if (Boolean(current) !== Boolean(account?.hash)) {
+    return fail(retryMessage);
+  }
+
+  formError(form, "");
+  submit.disabled = true;
+  try {
+    if (current && await digest(data.get("current-password"), account.salt) !== account.hash) {
+      return fail(bi("Mật khẩu hiện tại chưa đúng.", "Your current password is incorrect."), current);
+    }
+    if (current && data.get("current-password") === password) {
+      return fail(bi("Hãy chọn mật khẩu khác mật khẩu hiện tại.", "Choose a different password from your current one."), fields.namedItem("new-password"));
+    }
+    if (!isCurrent()) return;
+    const credentials = await passwordRecord(password);
+    if (!isCurrent()) return;
+
+    const latest = read(key, null);
+    if (latest?.hash !== account?.hash || latest?.salt !== account?.salt) {
+      return fail(retryMessage);
+    }
+    const profile = user.email === demoEmail ? demoProfile() : latest;
+    if (!write(key, { ...profile, ...credentials })) {
+      return fail(bi("Chưa lưu được mật khẩu. Hãy bật lưu trữ của trình duyệt rồi thử lại.", "The password could not be saved. Allow browser storage and try again."));
+    }
+    replaceAccountContent(settingsPage(), "#change-password-form [type=submit]");
+    notify(bi("Đã lưu mật khẩu mới.", "Your new password was saved."));
+  } catch {
+    fail(bi("Chưa xử lý được mật khẩu. Hãy thử lại trên localhost hoặc HTTPS.", "The password could not be processed. Try again on localhost or HTTPS."));
+  } finally {
+    submit.disabled = false;
+  }
 }
 
 function accountPage(page) {
@@ -1200,7 +1294,7 @@ function accountPage(page) {
     "tai-khoan": [bi("Quản lý thông tin tài khoản của bạn.", "Manage your account information."), profilePage],
     "lich-su": [bi("Phim và tập bạn đã mở trong trình phát.", "Films and episodes you opened in the player."), historyPage],
     "theo-doi": [bi("Những phim bạn đã lưu để xem sau.", "Films you saved to watch later."), followPage],
-    "cai-dat": [bi("Tùy chỉnh ngôn ngữ và trình phát.", "Customize your language and player."), settingsPage],
+    "cai-dat": [bi("Tùy chỉnh trình phát và quản lý mật khẩu.", "Manage your player and password."), settingsPage],
   };
   const [subtitle, render] = content[page];
   return `<div class="frame inner-page account-page">
@@ -1224,15 +1318,21 @@ function profilePage(edit = false) {
 }
 
 function settingsPage() {
-  function preference(label, description, control) {
-    return `<div class="pref-row"><div><label for="pref-${control.id}">${label}</label><p>${description}</p></div>
-      ${control.options ? `<select id="pref-${control.id}" data-pref="${control.id}">${videoOptions(control.options, settings[control.id])}</select>`
-        : `<input id="pref-${control.id}" type="checkbox" role="switch" class="toggle" data-pref="${control.id}" ${settings[control.id] ? "checked" : ""}>`}</div>`;
-  }
-  return `<section class="panel pref-panel"><h2>${icon("globe", 20)}${bi("Ngôn ngữ", "Language")}</h2>
-    ${preference(bi("Ngôn ngữ giao diện", "Interface language"), bi("Chọn ngôn ngữ hiển thị trên Rạp Nhà.", "Choose your language for Rạp Nhà."), { id: "language", options: [["vi", "Tiếng Việt"], ["en", "English"]] })}</section>
-    <section class="panel pref-panel"><h2>${icon("movie", 20)}${bi("Trình phát", "Player")}</h2>
-      ${preference(bi("Tự động phát tập tiếp theo", "Autoplay next episode"), bi("Áp dụng cho các tập phát trong trình phát Rạp Nhà.", "Applies to episodes played in the Rạp Nhà player."), { id: "autoplay" })}</section>`;
+  const hasPassword = user.email !== demoEmail || Boolean(read(accountKey("account"), null)?.hash);
+  const newPasswordOptions = { type: "password", autocomplete: "new-password", min: 8 };
+  return `<section class="panel pref-panel"><h2>${icon("movie", 20)}${bi("Trình phát", "Player")}</h2>
+      <div class="pref-row"><div><label for="pref-autoplay">${bi("Tự động phát tập tiếp theo", "Autoplay next episode")}</label><p>${bi("Áp dụng cho các tập phát trong trình phát Rạp Nhà.", "Applies to episodes played in the Rạp Nhà player.")}</p></div>
+        <input id="pref-autoplay" type="checkbox" role="switch" class="toggle" data-pref="autoplay" ${settings.autoplay ? "checked" : ""}></div></section>
+    <section class="panel pref-panel password-panel"><h2>${icon("lock", 20)}${bi("Đổi mật khẩu", "Change password")}</h2>
+      ${hasPassword ? "" : `<p>${bi("Tài khoản mẫu chưa có mật khẩu. Tạo mật khẩu để đăng nhập bằng email.", "Set a password for the demo account to sign in with email.")}</p>`}
+      <form id="change-password-form">
+        ${hasPassword ? field("current-password", bi("Mật khẩu hiện tại", "Current password"), { type: "password", autocomplete: "current-password" }) : ""}
+        ${field("new-password", bi("Mật khẩu mới", "New password"), { ...newPasswordOptions, placeholder: bi("Tối thiểu 8 ký tự", "At least 8 characters") })}
+        ${field("confirm-password", bi("Nhập lại mật khẩu mới", "Confirm new password"), newPasswordOptions)}
+        <p class="form-error" role="alert" hidden></p>
+        <button class="button primary" type="submit">${hasPassword ? bi("Đổi mật khẩu", "Change password") : bi("Tạo mật khẩu", "Set password")}</button>
+      </form>
+    </section>`;
 }
 
 function historyPage() {
@@ -1286,7 +1386,7 @@ function faqPage() {
     [bi("Tôi đăng ký và xác nhận tài khoản như thế nào?", "How do I register and verify my account?"), bi("Mở Đăng ký, điền thông tin rồi nhập mã OTP mẫu hiển thị trên màn hình xác nhận. Bạn cũng có thể chọn Dùng tài khoản mẫu ở màn hình Đăng nhập.", "Open registration, fill in the form and enter the demo code displayed on the verification screen. You can also use the demo account from the sign-in screen.")],
     [bi("Tôi tìm lại phim đang xem ở đâu?", "Where can I find a film I started?"), bi("Sau khi đăng nhập, mở Lịch sử xem từ menu avatar để mở lại phim hoặc tập và tiếp tục từ vị trí đã lưu.", "Open Watch history from the account menu to reopen a film or episode and resume from your saved position.")],
     [bi("Tôi sắp xếp danh sách theo dõi như thế nào?", "How do I sort my watchlist?"), bi("Mở Theo dõi từ menu avatar và chọn sắp xếp theo năm phát hành hoặc ngày bạn thêm phim.", "Open Watchlist from the account menu and sort by release year or the date you added a film.")],
-    [bi("Tôi đổi ngôn ngữ giao diện ở đâu?", "How do I change the interface language?"), bi("Mở Cài đặt hoặc menu avatar để chọn Tiếng Việt hoặc English.", "Open Settings or the account menu to choose Vietnamese or English.")],
+    [bi("Tôi đổi ngôn ngữ giao diện ở đâu?", "How do I change the interface language?"), bi("Bấm biểu tượng quả địa cầu ở đầu trang, cạnh nút tài khoản, rồi chọn Tiếng Việt hoặc English.", "Select the globe icon next to the account button at the top of the page, then choose Tiếng Việt or English.")],
   ];
   return `<div class="frame inner-page faq-page">${pageTitle(bi("Câu hỏi thường gặp", "Frequently asked questions"), bi("Tìm câu trả lời về tài khoản, phim và trình phát Rạp Nhà.", "Find answers about your account, films and the Rạp Nhà player."))}
     <div class="faq-list">${questions.map(([question, answer], index) => `<details class="panel" name="faq" ${index ? "" : "open"}><summary>${question} ${icon("down", 20)}</summary><p>${answer}</p></details>`).join("")}</div>
@@ -1548,6 +1648,9 @@ document.addEventListener("submit", event => {
   } else if (form.id === "otp-form") {
     event.preventDefault();
     submitOtp(form);
+  } else if (form.id === "change-password-form") {
+    event.preventDefault();
+    submitPasswordChange(form);
   } else if (form.id === "profile-form") {
     event.preventDefault();
     const name = String(new FormData(form).get("name")).trim();
@@ -1557,9 +1660,9 @@ document.addEventListener("submit", event => {
     }
     user.name = name;
     write("session", user);
-    if (user.email === demoUser.email) write("demo-name", name);
+    if (user.email === demoEmail) write("demo-name", name);
     else {
-      const key = `account.${user.email}`;
+      const key = accountKey("account");
       const account = read(key, null);
       if (account) write(key, { ...account, name });
     }
@@ -1606,12 +1709,18 @@ document.addEventListener("change", event => {
   settings[preference] = element.type === "checkbox" ? element.checked : element.value;
   write("settings", settings);
   if (preference === "language") {
+    const form = main.querySelector("#auth-form, #recovery-form, #reset-password-form, #otp-form, #change-password-form");
+    const values = form && new FormData(form);
+    if (main.querySelector(".player.is-playing")) autoplayRoute = location.hash;
     render({ scroll: false });
-    if (element.id === "menu-language") {
-      const toggle = header.querySelector("[data-action=avatar]");
-      toggle.click();
-      document.querySelector("#menu-language").focus();
-    } else document.getElementById(element.id)?.focus();
+    if (values) {
+      const replacement = document.getElementById(form.id);
+      for (const [name, value] of values) {
+        const input = replacement?.elements.namedItem(name);
+        if (input instanceof HTMLInputElement) input.value = value;
+      }
+    }
+    header.querySelector("[data-action=language]").focus({ preventScroll: true });
   }
   notify(bi("Đã lưu cài đặt.", "Settings saved."));
 });
@@ -1650,7 +1759,7 @@ document.addEventListener("click", event => {
   }
   const button = event.target.closest("[data-action]");
   const action = button?.dataset.action;
-  if (!event.target.closest(".search-form, .account-wrap, .genre-wrap")) hidePopovers();
+  if (!event.target.closest(".search-form, .account-wrap, .language-wrap, .genre-wrap")) hidePopovers();
   if (!action) {
     const anchor = event.target.closest('a[href^="#/"]');
     if (anchor?.hash === (location.hash || "#/") && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
@@ -1660,8 +1769,8 @@ document.addEventListener("click", event => {
     }
     return;
   }
-  if (action === "avatar" || action === "genres") {
-    const panel = document.getElementById(action === "avatar" ? "avatar-menu" : "genre-menu");
+  if (action === "avatar" || action === "language" || action === "genres") {
+    const panel = document.getElementById(button.getAttribute("aria-controls"));
     const open = panel.hidden;
     hidePopovers();
     panel.hidden = !open;
@@ -1691,9 +1800,9 @@ document.addEventListener("click", event => {
   } else if (action === "forgot") signInEmail = main.querySelector("#field-email").value.trim();
   else if (action === "recovery-demo") {
     const email = main.querySelector("#field-email");
-    email.value = demoUser.email;
+    email.value = demoEmail;
     email.focus();
-  } else if (action === "demo") finishSignIn({ ...demoUser, name: read("demo-name", demoUser.name) });
+  } else if (action === "demo") finishSignIn(demoProfile());
   else if (action === "resend") {
     const challenge = route().page === "quen-mat-khau" ? recovery : draft;
     if (!challenge || button.disabled) return;

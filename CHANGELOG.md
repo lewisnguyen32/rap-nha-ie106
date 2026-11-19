@@ -81,4 +81,10 @@ Thanh điều khiển đặt phát/tạm dừng, âm thanh và thời gian bên 
 
 Menu cài đặt cho phép tắt phụ đề hoặc bật câu mẫu bằng tiếng Việt hay tiếng Anh. Chất lượng có các mức **Tự động**, **1080p**, **720p** và **480p**. Thuyết minh có hai lựa chọn **Tắt** và **Tiếng Việt**. Hai mục này hiển thị trạng thái mô phỏng trên khung hình.
 
+## Làm rõ bộ chọn ngôn ngữ và thêm đổi mật khẩu
+
+Bộ chọn ngôn ngữ nằm trong một biểu tượng quả địa cầu nhỏ, không viền, cạnh nút tài khoản trước và sau khi đăng nhập. Khi mở, bộ chọn hiển thị nhãn **Ngôn ngữ / Language** cùng hai lựa chọn **Tiếng Việt** và **English**. Biểu tượng bánh răng dùng chung được chỉnh lại cho menu tài khoản, trang Cài đặt và trình phát.
+
+Người dùng đã đăng nhập có thể đổi mật khẩu từ trang Cài đặt bằng cách nhập mật khẩu hiện tại rồi xác nhận mật khẩu mới. Tài khoản mẫu **Minh Quân** dùng email `minhquan@example.com` và có thể đặt mật khẩu lần đầu tại đây.
+
 Xem các luồng trình diễn trong [README](README.md) và các điểm còn mở trong [giới hạn bản demo](DEMO_LIMITATIONS.md).

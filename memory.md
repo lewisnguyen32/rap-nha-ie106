@@ -15,9 +15,10 @@
 - Trang giới thiệu phim bộ đặt danh sách tập ngay sau thông tin phim. Nút **Trailer** nằm cạnh nút xem.
 - Dùng **Hai Phượng** để thử tìm kiếm bằng `hai phuong` hoặc `Furie`, **Tết ở Làng Địa Ngục** để thử danh sách tập, và **Dùng tài khoản mẫu** để thử theo dõi và lịch sử.
 - Luồng **Quên mật khẩu?** bắt đầu từ trang Đăng nhập. Có thể dùng email đã đăng ký hoặc nút **Dùng email mẫu**. OTP `123456` mở bước đặt mật khẩu mới. OTP sai mở hộp thoại thất bại. Đường dẫn `#/dang-tai` mở riêng màn hình chờ cho báo cáo.
+- Đổi ngôn ngữ bằng biểu tượng quả địa cầu cạnh nút tài khoản ở đầu trang. **Đổi mật khẩu** nằm trong Cài đặt sau khi đăng nhập. Tài khoản mẫu **Minh Quân** dùng email `minhquan@example.com`. Các khóa lưu trữ tài khoản mẫu trước đây được dùng lại để giữ dữ liệu đã lưu.
 
 ## Ghi chú còn mở
 
 - Banner đang chuyển thủ công. Tự động chuyển là một phương án cần đánh giá thêm.
-- Các ý tưởng đang ghi nhận trong README gồm thêm hiệu ứng cho mục Câu hỏi thường gặp và làm rõ nhãn **Language** trong menu avatar.
+- Có thể bổ sung hiệu ứng mở và thu câu trả lời trong mục Câu hỏi thường gặp.
 - Nếu chỉnh hàng phim, kiểm tra cả hai chiều qua điểm nối cuối–đầu, kiểm tra hai ô mỗi lượt bấm và thao tác vuốt trên màn hình hẹp.
