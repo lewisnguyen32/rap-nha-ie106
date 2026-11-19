@@ -6,7 +6,7 @@
 - Trang chủ có sáu hàng phim, gồm **Top 10 phim gần đây**, **Phim chiếu rạp**, **Phim Việt Nam**, **Phim Hàn Quốc**, **Rạp Nhà tuyển chọn** và **Điểm cao từ nhà phát hành**. Top 10 xếp theo thời điểm phát hành, lấy năm khi thiếu ngày. Nút **Xem tất cả** giữ thứ hạng khi mở danh mục.
 - `bindShelf` trong `dist/app.js` điều khiển các hàng phim. Hàng cuộn vòng hai chiều, mỗi lần bấm mũi tên đi hai ô, vẫn hỗ trợ vuốt và tôn trọng tùy chọn giảm chuyển động. Banner lớn dùng điều khiển riêng và chuyển từng phim.
 - Các slide banner dùng chung chiều cao từng hàng để vị trí nút và mục Top 10 ổn định khi đổi phim. Tiêu đề chỉ giảm cỡ chữ khi vượt hai dòng, tối đa 20%. Mô tả trên banner hiển thị tối đa ba dòng.
-- Nhãn phim nổi bật hiển thị bằng chữ, tiêu đề hàng phim dùng chữ thuần. Thẻ Top 10 đặt số hạng cạnh tên phim. Hiệu ứng rê chuột làm poster sáng nhẹ.
+- Nhãn phim nổi bật hiển thị bằng chữ, tiêu đề hàng phim dùng chữ thuần. Thẻ Top 10 đặt số hạng cạnh tên phim. Poster ở trang chủ bỏ viền mặc định. Thẻ vẫn có viền focus khi dùng bàn phím và poster sáng nhẹ khi rê chuột.
 - Trên desktop, giữ chuột trên thẻ phim hoặc dùng Tab để mở ô xem nhanh cạnh poster. Ô dùng mô tả và thông tin của phim từ danh mục, tự đổi phía theo khoảng trống và đóng bằng Escape.
 - Tất cả 23 tựa dùng trình phát mô phỏng bằng ảnh tĩnh với phát, tạm dừng, tua, toàn màn hình, âm lượng mô phỏng và lưu tiến độ. Trailer dùng YouTube. **Khi Cuộc Đời Cho Bạn Quả Quýt** có bốn phần, mỗi phần bốn tập, giữ đường dẫn và số tập liên tục từ 1 đến 16.
 - Hai nút tua trên thanh điều khiển và phím **← / →** tua lùi hoặc tới 10 giây khi đang phát hoặc tạm dừng. Trình phát hiện số giây đã tua trên khung hình và lưu vị trí mới.
