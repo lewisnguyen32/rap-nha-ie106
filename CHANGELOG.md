@@ -75,4 +75,10 @@ Trên desktop, ô xem nhanh xuất hiện bên cạnh poster sau khoảng 0,3 gi
 
 Người dùng bàn phím có thể dùng **Tab** để xem nhanh, **Escape** để đóng và **Enter** để mở trang giới thiệu. Đã thử trên Chrome ở trang chủ và trang danh mục.
 
+## Bổ sung điều khiển và cài đặt trình phát
+
+Thanh điều khiển đặt phát/tạm dừng, âm thanh và thời gian bên trái. Nhóm bên phải bắt đầu bằng tua lùi, tua tới và tập sau. Mỗi lần bấm nút tua hoặc phím mũi tên trái/phải sẽ tua tối đa 10 giây và hiện số giây đã tua trên khung hình.
+
+Menu cài đặt cho phép tắt phụ đề hoặc bật câu mẫu bằng tiếng Việt hay tiếng Anh. Chất lượng có các mức **Tự động**, **1080p**, **720p** và **480p**. Thuyết minh có hai lựa chọn **Tắt** và **Tiếng Việt**. Hai mục này hiển thị trạng thái mô phỏng trên khung hình.
+
 Xem các luồng trình diễn trong [README](README.md) và các điểm còn mở trong [giới hạn bản demo](DEMO_LIMITATIONS.md).

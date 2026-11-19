@@ -96,6 +96,8 @@ const symbols = {
   movie: '<rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 9h18M7 5l2 4m5-4 2 4m-6 3 5 3-5 3z"/>',
   sliders: '<path d="M4 7h16M4 12h16M4 17h16M8 5v4m8 1v4m-6 1v4"/>',
   skip: '<path d="m5 6 10 6-10 6z" fill="currentColor" stroke="none"/><path d="M18 6v12"/>',
+  jumpTen: '<path d="M20.5 9a9 9 0 1 0 .1 5.5M20.5 4v5h-5"/><path d="m8 12 1.5-1v5m4.5-5a1.5 1.5 0 0 1 1.5 1.5v2a1.5 1.5 0 0 1-3 0v-2A1.5 1.5 0 0 1 14 11z" stroke-width="1.4"/>',
+  fastForward: '<path d="m5 6 6 6-6 6m7-12 6 6-6 6"/>',
   volume: '<path d="M4 9v6h4l5 4V5L8 9zM16 8a5 5 0 0 1 0 8m2-11a9 9 0 0 1 0 14"/>',
   mute: '<path d="M4 9v6h4l5 4V5L8 9zM16 10l5 5m0-5-5 5"/>',
   captions: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 10a2.5 2.5 0 1 0 0 4m7-4a2.5 2.5 0 1 0 0 4"/>',
@@ -583,26 +585,39 @@ function trailerPanel(film) {
 
 function videoPlayer(film, episode) {
   const playLabel = bi("Phát", "Play");
+  const captionOptions = [["off", bi("Tắt", "Off")], ["vi", "Tiếng Việt"], ["en", "English"]];
+  const qualityOptions = [["auto", bi("Tự động", "Auto")], ["1080", "1080p"], ["720", "720p"], ["480", "480p"]];
+  const narrationOptions = [["off", bi("Tắt", "Off")], ["vi", "Tiếng Việt"]];
   return `<div class="player" data-player="${episode}" role="group" aria-label="${bi("Trình phát mô phỏng", "Demo player")}">
     <img class="player-still" src="${playerArt(film, episode)}" width="1920" height="1080" alt="" draggable="false">
-    <span class="player-demo-label">${bi("Mô phỏng bằng ảnh tĩnh", "Still-image demo")}</span>
+    <span class="player-demo-label">${bi("Mô phỏng bằng ảnh tĩnh", "Still-image demo")}<span data-player-mode></span></span>
     <button class="player-big-play" type="button" data-video="play" aria-label="${playLabel}">${icon("play", 42)}</button>
+    <span class="player-captions" hidden></span>
     <div class="video-controls">
       <label class="seek-control"><span class="sr-only">${bi("Vị trí phát", "Seek position")}</span><input type="range" data-video="seek" min="0" max="1000" value="0"></label>
       <div class="video-buttons">
         <div>
-          ${episode > 1 ? `<a class="icon-button prev-video" href="${routeToPlayer(film, episode - 1)}" aria-label="${bi("Tập trước", "Previous episode")}" title="${bi("Tập trước", "Previous episode")}">${icon("skip")}</a>` : ""}
           ${iconButton("play", playLabel, 'data-video="play"')}
-          ${episode < film.episodeCount ? `<a class="icon-button" href="${routeToPlayer(film, episode + 1)}" aria-label="${bi("Tập sau", "Next episode")}" title="${bi("Tập sau", "Next episode")}">${icon("skip")}</a>` : ""}
+          ${iconButton("volume", bi("Tắt tiếng", "Mute"), 'data-video="mute"')}
+          <label class="volume-control"><span class="sr-only">${bi("Âm lượng", "Volume")}</span><input type="range" data-video="volume" min="0" max="1" step="0.05" value="1"></label>
           <span class="video-time" data-time></span>
         </div>
         <div>
-          ${iconButton("volume", bi("Tắt tiếng", "Mute"), 'data-video="mute"')}
-          <label class="volume-control"><span class="sr-only">${bi("Âm lượng", "Volume")}</span><input type="range" data-video="volume" min="0" max="1" step="0.05" value="1"></label>
+          ${iconButton("jumpTen", bi("Tua lùi 10 giây", "Skip back 10 seconds"), 'data-video="rewind" aria-keyshortcuts="ArrowLeft"')}
+          ${iconButton("jumpTen", bi("Tua tới 10 giây", "Skip forward 10 seconds"), 'data-video="forward" aria-keyshortcuts="ArrowRight"')}
+          ${episode < film.episodeCount ? `<a class="icon-button" href="${routeToPlayer(film, episode + 1)}" aria-label="${bi("Tập sau", "Next episode")}" title="${bi("Tập sau", "Next episode")}">${icon("skip")}</a>` : ""}
+          ${iconButton("settings", bi("Cài đặt trình phát", "Player settings"), 'data-video="settings" aria-expanded="false" aria-controls="video-preferences"')}
+          <div id="video-preferences" class="video-preferences" hidden>
+            <label><span>${bi("Phụ đề", "Subtitles")}</span><select data-video="captions">${videoOptions(captionOptions, read("playerCaptions", "off"))}</select></label>
+            <label><span>${bi("Chất lượng mẫu", "Demo quality")}</span><select data-video="quality">${videoOptions(qualityOptions, read("playerQuality", "auto"))}</select></label>
+            <label><span>${bi("Thuyết minh mẫu", "Demo voice-over")}</span><select data-video="narration">${videoOptions(narrationOptions, read("playerNarration", "off"))}</select></label>
+          </div>
           ${iconButton("fullscreen", bi("Toàn màn hình", "Fullscreen"), 'data-video="fullscreen"')}
         </div>
       </div>
     </div>
+    <div class="video-seek-feedback" aria-hidden="true">${icon("fastForward", 26)}<span></span></div>
+    <span class="sr-only" role="status" data-seek-status></span>
   </div>`;
 }
 
@@ -634,13 +649,23 @@ const videoTime = seconds => {
 function bindPlayer(container, film, episode) {
   const seek = container.querySelector("[data-video=seek]");
   const time = container.querySelector("[data-time]");
+  const seekFeedback = container.querySelector(".video-seek-feedback");
+  const seekStatus = container.querySelector("[data-seek-status]");
   const controls = container.querySelector(".video-controls");
   const play = controls.querySelector("[data-video=play]");
   const mute = controls.querySelector("[data-video=mute]");
   const volume = controls.querySelector("[data-video=volume]");
+  const preferencesButton = controls.querySelector("[data-video=settings]");
+  const preferences = controls.querySelector(".video-preferences");
+  const captions = preferences.querySelector("[data-video=captions]");
+  const quality = preferences.querySelector("[data-video=quality]");
+  const narration = preferences.querySelector("[data-video=narration]");
+  const captionLine = container.querySelector(".player-captions");
+  const modeLabel = container.querySelector("[data-player-mode]");
   const fullscreen = controls.querySelector("[data-video=fullscreen]");
   const events = new AbortController();
   const options = { signal: events.signal };
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const duration = episodeMinutes(film, episode) * 60;
   const previousProgress = watching(film, episode)?.progress ?? 0;
   const historyKey = accountKey("history");
@@ -649,6 +674,7 @@ function bindPlayer(container, film, episode) {
   let lastTick = 0;
   let lastSave = 0;
   let timer;
+  let seekAnimation;
   let interacted = false;
   let savedVolume = Number(read("volume", 1));
   volume.value = savedVolume;
@@ -679,6 +705,34 @@ function bindPlayer(container, film, episode) {
     bar.value = progress;
   }
 
+  function seekTo(position) {
+    interacted = true;
+    elapsed = position;
+    lastTick = performance.now();
+    syncTime();
+  }
+
+  function jumpBy(seconds) {
+    const target = Math.max(0, Math.min(duration, elapsed + seconds));
+    if (target === elapsed) return;
+    const skipped = Math.abs(Math.floor(target) - Math.floor(elapsed));
+    const rewind = seconds < 0;
+    seekTo(target);
+    saveProgress(true);
+
+    seekFeedback.classList.toggle("is-rewind", rewind);
+    seekFeedback.lastElementChild.textContent = `${rewind ? "−" : "+"}${skipped}s`;
+    seekStatus.textContent = bi(`Đã tua đến ${videoTime(elapsed)}`, `Skipped to ${videoTime(elapsed)}`);
+    seekAnimation?.cancel();
+    const frames = reducedMotion.matches ? [{ opacity: 1 }, { opacity: 1 }] : [
+      { opacity: 0, scale: .82 },
+      { opacity: 1, scale: 1, offset: .2 },
+      { opacity: 1, scale: 1, offset: .65 },
+      { opacity: 0, scale: 1.12 },
+    ];
+    seekAnimation = seekFeedback.animate(frames, { duration: 700, easing: "ease-out" });
+  }
+
   function updateButton(button, symbol, label) {
     button.innerHTML = icon(symbol);
     button.title = label;
@@ -694,6 +748,27 @@ function bindPlayer(container, film, episode) {
   function syncVolume() {
     const muted = Number(volume.value) === 0;
     updateButton(mute, muted ? "mute" : "volume", muted ? bi("Bật tiếng", "Unmute") : bi("Tắt tiếng", "Mute"));
+  }
+
+  function syncPreferences() {
+    const samples = { vi: "Đây là phụ đề tiếng Việt mẫu.", en: "This is a sample English subtitle." };
+    captionLine.textContent = samples[captions.value] ?? "";
+    captionLine.hidden = !captionLine.textContent;
+    captionLine.lang = captionLine.hidden ? "" : captions.value;
+    const labels = [];
+    if (quality.value !== "auto") labels.push(quality.selectedOptions[0].textContent);
+    if (narration.value === "vi") labels.push(bi("Thuyết minh", "Voice-over"));
+    modeLabel.textContent = labels.length ? ` · ${labels.join(" · ")}` : "";
+  }
+
+  function setPreferencesOpen(open) {
+    preferences.hidden = !open;
+    preferencesButton.setAttribute("aria-expanded", String(open));
+  }
+
+  function closePreferencesOutside(event) {
+    if (preferences.hidden || preferences.contains(event.target) || preferencesButton.contains(event.target)) return;
+    setPreferencesOpen(false);
   }
 
   function pause() {
@@ -759,37 +834,61 @@ function bindPlayer(container, film, episode) {
         start();
         if (control?.classList.contains("player-big-play")) play.focus({ preventScroll: true });
       } else pause();
+    } else if (action === "rewind" || action === "forward") {
+      jumpBy(action === "rewind" ? -10 : 10);
     } else if (action === "mute") {
       volume.value = Number(volume.value) === 0 ? savedVolume || .6 : 0;
       syncVolume();
+    } else if (action === "settings") {
+      setPreferencesOpen(preferences.hidden);
+      if (!preferences.hidden) captions.focus({ preventScroll: true });
     } else if (action === "fullscreen") toggleFullscreen();
   }, options);
 
   container.addEventListener("input", event => {
     if (event.target === seek) {
-      interacted = true;
-      elapsed = duration * Number(seek.value) / 1000;
-      lastTick = performance.now();
-      syncTime();
+      seekTo(duration * Number(seek.value) / 1000);
     } else if (event.target === volume) {
       if (Number(volume.value) > 0) savedVolume = Number(volume.value);
       write("volume", Number(volume.value));
       syncVolume();
     }
   }, options);
+  preferences.addEventListener("change", event => {
+    if (event.target === captions) write("playerCaptions", captions.value);
+    else if (event.target === quality) write("playerQuality", quality.value);
+    else if (event.target === narration) write("playerNarration", narration.value);
+    syncPreferences();
+  }, options);
   seek.addEventListener("change", () => saveProgress(true), options);
+  document.addEventListener("click", closePreferencesOutside, options);
+  document.addEventListener("focusin", closePreferencesOutside, options);
   document.addEventListener("fullscreenchange", syncFullscreen, options);
   document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !preferences.hidden) {
+      setPreferencesOpen(false);
+      preferencesButton.focus({ preventScroll: true });
+      event.preventDefault();
+      return;
+    }
     if (event.key === "Escape" && container.classList.contains("is-expanded")) toggleFullscreen();
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (!container.contains(event.target) && event.target !== main && event.target !== document.body) return;
+    if (event.target.closest("input, textarea, select, [contenteditable]") || document.querySelector("dialog[open]")) return;
+    event.preventDefault();
+    jumpBy(event.key === "ArrowLeft" ? -10 : 10);
   }, options);
   window.addEventListener("pagehide", pause, options);
 
   syncTime();
   syncVolume();
+  syncPreferences();
   if (autoplayRoute === location.hash) start();
   autoplayRoute = "";
   return () => {
     pause();
+    seekAnimation?.cancel();
     events.abort();
   };
 }

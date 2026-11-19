@@ -16,6 +16,7 @@ Lịch sử chỉnh sửa
 10. Tinh gọn banner và tiêu đề hàng phim, chuyển số hạng Top 10 xuống cạnh tên phim và đưa danh sách tập lên ngay sau thông tin phim bộ.
 11. Cập nhật logo Rạp Nhà với biểu tượng mái nhà nối với nút phát. Đầu trang và chân trang dùng logo đầy đủ, còn favicon và màn hình chờ dùng biểu tượng riêng.
 12. Thêm ô xem nhanh trên desktop. Rê chuột hoặc dùng Tab đến thẻ phim để xem tóm tắt, thể loại, năm phát hành, thời lượng hoặc số tập và điểm đánh giá nếu có.
+13. Thêm hai nút tua lùi và tới 10 giây. Có thể dùng nút hoặc phím **← / →** khi đang phát và khi tạm dừng. Menu cài đặt có phụ đề, chất lượng và thuyết minh mẫu.
 
 Xem lý do, kết quả và gợi ý minh họa cho từng mốc trong [lịch sử chỉnh sửa chi tiết](CHANGELOG.md).
 ## Giới hạn bản demo
@@ -29,7 +30,6 @@ Xem lý do, kết quả và gợi ý minh họa cho từng mốc trong [lịch s
 ### Bé:
 
 - Avatar overlay: Phần ngôn ngữ nên ghi rõ "Language" (Nếu người không biết Tiếng Việt sẽ không biết chỗ nào để đổi ngôn ngữ, tuy đã có icon "toàn cầu" nhưng vẫn chưa đảm bảo được tính user-friendly)
-- Video player: Chưa có phần thua 10 giây vật lý (Optional, phù hợp cho tệp User bé)
 
 (**chương 4**) - Câu hỏi thường gặp: Chưa có hiệu ứng khi chuyển giữa các câu hỏi.
 (**chương 4**) - Trang chủ: Banner chưa tự động chuyển phim để quảng bá.
@@ -45,7 +45,7 @@ Chạy `npm run dev` trong thư mục này và mở [http://127.0.0.1:4173/](htt
 Trên trang chủ, **Top 10 phim gần đây** xếp theo ngày phát hành tại thị trường gốc khi có dữ liệu và dùng năm phát hành khi thiếu ngày. Nút **Xem tất cả** mở đủ 10 tựa với cùng thứ hạng. **Phim chiếu rạp** giới thiệu phim đã phát hành tại rạp. Hai hàng **Phim Việt Nam** và **Phim Hàn Quốc** dẫn tới danh mục lọc theo quốc gia.
 
 1. Nhập `hai phuong` hoặc `Furie` để tìm **Hai Phượng** theo tên tiếng Việt không dấu hoặc tên quốc tế. Thử lọc theo loại phim, thể loại, năm và quốc gia. Các điểm hiển thị lấy từ trang của nhà phát hành, khi có.
-2. Mở **Tết ở Làng Địa Ngục** và chọn một trong 12 tập để thử phát, tạm dừng, tua, chỉnh mức âm lượng mô phỏng và toàn màn hình.
+2. Mở **Tết ở Làng Địa Ngục** và chọn một trong 12 tập. Bấm nút tua trên thanh điều khiển hoặc dùng phím **← / →** để tua lùi hoặc tới 10 giây. Mở **Cài đặt trình phát** để thử phụ đề, chất lượng và thuyết minh.
 3. Mở **Khi Cuộc Đời Cho Bạn Quả Quýt**, chọn Phần 4 rồi thử mở Tập 13. Nút **Trailer** mở video YouTube.
 4. Chọn **Đăng nhập → Dùng tài khoản mẫu** để xem theo dõi và lịch sử của Minh An. Có thể đăng ký bằng dữ liệu thử và mã OTP `123456`.
 5. Chọn **Đăng nhập → Quên mật khẩu? → Dùng email mẫu → Lấy mã xác nhận**. Dùng OTP `000000` để mở hộp thoại thất bại, rồi nhập `123456` và đặt mật khẩu mới để mở hộp thoại thành công. Mở đường dẫn `#/dang-tai` trên website để xem riêng màn hình Đang tải.

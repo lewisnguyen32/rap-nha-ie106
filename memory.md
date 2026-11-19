@@ -9,6 +9,8 @@
 - Nhãn phim nổi bật hiển thị bằng chữ, tiêu đề hàng phim dùng chữ thuần. Thẻ Top 10 đặt số hạng cạnh tên phim. Hiệu ứng rê chuột làm poster sáng nhẹ.
 - Trên desktop, giữ chuột trên thẻ phim hoặc dùng Tab để mở ô xem nhanh cạnh poster. Ô dùng mô tả và thông tin của phim từ danh mục, tự đổi phía theo khoảng trống và đóng bằng Escape.
 - Tất cả 23 tựa dùng trình phát mô phỏng bằng ảnh tĩnh với phát, tạm dừng, tua, toàn màn hình, âm lượng mô phỏng và lưu tiến độ. Trailer dùng YouTube. **Khi Cuộc Đời Cho Bạn Quả Quýt** có bốn phần, mỗi phần bốn tập, giữ đường dẫn và số tập liên tục từ 1 đến 16.
+- Hai nút tua trên thanh điều khiển và phím **← / →** tua lùi hoặc tới 10 giây khi đang phát hoặc tạm dừng. Trình phát hiện số giây đã tua trên khung hình và lưu vị trí mới.
+- Menu cài đặt trình phát có phụ đề mẫu tiếng Việt, tiếng Anh, chất lượng và thuyết minh mô phỏng. Lựa chọn được lưu trong trình duyệt.
 - 60 ảnh của trình phát nằm trong `dist/assets/films/player/` và có kích thước 1920 × 1080. Banner Thám Tử Kiên dùng lại ảnh không chữ trong thư mục này. Các thẻ tập dùng ảnh thu nhỏ riêng.
 - Trang giới thiệu phim bộ đặt danh sách tập ngay sau thông tin phim. Nút **Trailer** nằm cạnh nút xem.
 - Dùng **Hai Phượng** để thử tìm kiếm bằng `hai phuong` hoặc `Furie`, **Tết ở Làng Địa Ngục** để thử danh sách tập, và **Dùng tài khoản mẫu** để thử theo dõi và lịch sử.
@@ -17,5 +19,5 @@
 ## Ghi chú còn mở
 
 - Banner đang chuyển thủ công. Tự động chuyển là một phương án cần đánh giá thêm.
-- Các ý tưởng đang ghi nhận trong README gồm thêm hiệu ứng cho mục Câu hỏi thường gặp, làm rõ nhãn **Language** trong menu avatar và cân nhắc nút tua 10 giây.
+- Các ý tưởng đang ghi nhận trong README gồm thêm hiệu ứng cho mục Câu hỏi thường gặp và làm rõ nhãn **Language** trong menu avatar.
 - Nếu chỉnh hàng phim, kiểm tra cả hai chiều qua điểm nối cuối–đầu, kiểm tra hai ô mỗi lượt bấm và thao tác vuốt trên màn hình hẹp.
