@@ -4,20 +4,21 @@ Rạp Nhà là frontend đồ án Thiết kế giao diện người dùng, dựa
 
 ## Lịch sử chỉnh sửa
 
-1. Xây dựng giao diện thô từ wireframe, bổ sung tương tác tìm kiếm, lọc phim và lưu lịch sử xem trên trình duyệt.
-2. Thay ảnh bằng poster và ảnh phim thật, đồng thời cập nhật thông tin phim, danh sách tập và liên kết xem.
-3. Bổ sung trình phát mẫu và cấu hình triển khai tĩnh trên GitHub Pages.
-4. Mở rộng trang chủ với các hàng Phim chiếu rạp, Phim Việt Nam, Phim Hàn Quốc và bảng xếp hạng Top 10 phim gần đây. (Trước đó chỉ có 3 hàng, khiến cho trang chủ tương đối ngắn và ít sự lựa chọn cho User)
-5. Cho các hàng phim cuộn vòng hai chiều. Mỗi lần bấm mũi tên trượt hai ô với chuyển động mượt hơn. (Trải nghiệm mượt mà hơn cho User, một lần chuyển 2 phim 'có vẻ' phù hợp (CHECK LẠI))
-6. Dùng trình phát ảnh tĩnh cho toàn bộ phim và tập. Giữ trailer YouTube.
+1. Xây dựng giao diện thô từ wireframe, bổ sung tương tác tìm kiếm, lọc phim và lưu lịch sử xem trên trình duyệt. (Phước)
+2. Thay ảnh bằng poster và ảnh phim thật, đồng thời cập nhật thông tin phim, danh sách tập và liên kết xem. (Phước)
+3. Bổ sung trình phát mẫu và cấu hình triển khai tĩnh trên GitHub Pages. (Phước)
+4. Mở rộng trang chủ từ ba lên sáu hàng phim, gồm các hàng mới Phim chiếu rạp, Phim Việt Nam và Phim Hàn Quốc, đồng thời cập nhật bảng xếp hạng Top 10 phim gần đây. (Phước)
+5. Cho các hàng phim cuộn vòng hai chiều, mỗi lần bấm mũi tên trượt hai thẻ. Đánh giá nhịp cuộn trên màn hình hẹp ở **Chương 4**. (Phước)
+6. Bổ sung trình phát mô phỏng cho toàn bộ phim và tập, hỗ trợ phát, tạm dừng, tua và lưu tiến độ xem trên trình duyệt. Trailer mở riêng qua YouTube. (Phước)
+7. Bổ sung 60 ảnh Full HD cho trình phát, gồm 19 ảnh phim lẻ và 41 ảnh tập phim bộ. (Phước)
+8. Ổn định bố cục banner trang chủ khi chuyển phim để các nút và mục Top 10 phim gần đây giữ nguyên vị trí. Tiêu đề dài tự giảm cỡ chữ khi cần. Đổi ảnh nền Thám Tử Kiên sang bản không chữ và căn lại để khuôn mặt nhân vật hiển thị rõ trên desktop và mobile. (Phước)
 
 Xem lý do, kết quả và gợi ý minh họa cho từng mốc trong [lịch sử chỉnh sửa chi tiết](CHANGELOG.md).
 
 ## Giới hạn bản demo
 
 Bản demo mô phỏng phát phim bằng ảnh tĩnh và thanh tiến độ. Trailer YouTube có video và âm thanh.
-
-Xem [giới hạn chi tiết và các điểm cần cải tiến](DEMO_LIMITATIONS.md).
+Các điểm cần đánh giá ở **Chương 4**, gồm nhịp cuộn hàng phim, chuyển cảnh banner và hiệu ứng câu hỏi thường gặp, được ghi trong [giới hạn và hướng cải tiến](DEMO_LIMITATIONS.md).
 
 ## Chạy trên máy
 
