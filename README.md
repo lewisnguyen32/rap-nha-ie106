@@ -4,26 +4,31 @@ Rạp Nhà là frontend đồ án Thiết kế giao diện người dùng, dựa
 
 ## Lịch sử chỉnh sửa
 
-1. Xây dựng giao diện thô từ wireframe, bổ sung tương tác tìm kiếm, lọc phim và lưu lịch sử xem trên trình duyệt.
-2. Thay ảnh bằng poster và ảnh phim thật, đồng thời cập nhật thông tin phim, danh sách tập và liên kết xem.
-3. Bổ sung trình phát mẫu và cấu hình triển khai tĩnh trên GitHub Pages.
-4. Mở rộng trang chủ với các hàng Phim chiếu rạp, Phim Việt Nam, Phim Hàn Quốc và bảng xếp hạng Top 10 phim gần đây. (Trước đó chỉ có 3 hàng, khiến cho trang chủ tương đối ngắn và ít sự lựa chọn cho User)
-5. Cho các hàng phim cuộn vòng hai chiều. Mỗi lần bấm mũi tên trượt hai ô với chuyển động mượt hơn. (Trải nghiệm mượt mà hơn cho User, một lần chuyển 2 phim 'có vẻ' phù hợp (CHECK LẠI))
+1. Xây dựng giao diện thô từ wireframe, bổ sung tương tác tìm kiếm, lọc phim và lưu lịch sử xem trên trình duyệt. (Phước)
+2. Thay ảnh bằng poster và ảnh phim thật, đồng thời cập nhật thông tin phim, danh sách tập và liên kết xem. (Phước)
+3. Bổ sung trình phát mẫu và cấu hình triển khai tĩnh trên GitHub Pages. (Phước)
+4. Mở rộng trang chủ với các hàng Phim chiếu rạp, Phim Việt Nam, Phim Hàn Quốc và bảng xếp hạng Top 10 phim gần đây. (Trước đó chỉ có 3 hàng, khiến cho trang chủ tương đối ngắn và ít sự lựa chọn cho User) (Phước)
+5. Cho các hàng phim cuộn vòng hai chiều. Mỗi lần bấm mũi tên trượt hai ô với chuyển động mượt hơn. (Trải nghiệm mượt mà hơn cho User, một lần chuyển 2 phim 'có vẻ' phù hợp (CHECK LẠI)) (**Chương 4**) (Phước)
+6. Bổ sung trình phát mô phỏng cho toàn bộ phim và tập, hỗ trợ phát, tạm dừng, tua và lưu tiến độ xem trên trình duyệt. Trailer mở riêng qua YouTube. (Phước)
+7. Bổ sung 60 ảnh Full HD cho trình phát, gồm 19 ảnh phim lẻ và 41 ảnh tập phim bộ. (Phước)
+8. Ổn định bố cục banner trang chủ khi chuyển phim để các nút và mục Top 10 phim gần đây giữ nguyên vị trí. Tiêu đề dài tự giảm cỡ chữ khi cần. Đổi ảnh nền Thám Tử Kiên sang bản không chữ và căn lại để khuôn mặt nhân vật hiển thị rõ trên desktop và mobile. (Phước)
+
 
 Xem lý do, kết quả và gợi ý minh họa cho từng mốc trong [lịch sử chỉnh sửa chi tiết](CHANGELOG.md).
 
 ## Giới hạn bản demo
 
 ### Lớn:
-- Với phim bộ, danh sách tập hiển thị tên, ảnh và thời lượng. Rạp Nhà chưa phát video từng tập do hạn chế về nguồn phát.
-- Chọn **Xem tại nguồn** để mở nền tảng phát hành khi có liên kết. **Tears of Steel** phát trực tiếp trên Rạp Nhà theo giấy phép CC BY 3.0.
-- Banner lớn ở trang chủ hiện tại khác spacing ở mỗi phim => Khi đổi phim có thể làm lệch khu vực đó.
-- Thiếu animation mang tính trực quan.
+- ~~Với phim bộ, danh sách tập hiển thị tên, ảnh và thời lượng. Rạp Nhà chưa phát video từng tập do hạn chế về nguồn phát.~~ (Đã thêm tập cho mỗi phim bộ dài tập, có thể chọn phần phim hiện tại, mỗi tập chỉ hiển thị ảnh tĩnh của tập đó tượng trưng - Phước)
+- ~~Banner lớn ở trang chủ hiện tại khác spacing ở mỗi phim => Khi đổi phim có thể làm lệch khu vực đó.~~ (Đã xử lý: Tiêu đề vượt hai dòng sẽ tự giảm cỡ chữ tối đa 20%. Nếu vẫn dài, tiêu đề được xuống thêm dòng để hiện đầy đủ tên phim. Mô tả trên banner hiển thị tối đa ba dòng - Phước)
+
+(**chương 4**) - Thiếu animation mang tính trực quan.
 ### Bé:
-- Câu hỏi thường gặp: Chưa có hiệu ứng khi chuyển giữa các câu hỏi.
-- Trang chủ: Banner chưa tự động chuyển phim để quảng bá.
 - Avatar overlay: Phần ngôn ngữ nên ghi rõ "Language" (Nếu người không biết Tiếng Việt sẽ không biết chỗ nào để đổi ngôn ngữ, tuy đã có icon "toàn cầu" nhưng vẫn chưa đảm bảo được tính user-friendly)
 - Video player: Chưa có phần thua 10 giây vật lý (Optional, phù hợp cho tệp User bé)
+
+(**chương 4**) - Câu hỏi thường gặp: Chưa có hiệu ứng khi chuyển giữa các câu hỏi.
+(**chương 4**) - Trang chủ: Banner chưa tự động chuyển phim để quảng bá.
 
 Xem [giới hạn chi tiết và các điểm cần cải tiến](DEMO_LIMITATIONS.md).
 
