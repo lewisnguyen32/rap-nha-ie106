@@ -10,7 +10,10 @@ Rạp Nhà là frontend đồ án Thiết kế giao diện người dùng, dựa
 4. Mở rộng trang chủ với các hàng Phim chiếu rạp, Phim Việt Nam, Phim Hàn Quốc và bảng xếp hạng Top 10 phim gần đây. (Trước đó chỉ có 3 hàng, khiến cho trang chủ tương đối ngắn và ít sự lựa chọn cho User)
 5. Cho các hàng phim cuộn vòng hai chiều. Mỗi lần bấm mũi tên trượt hai ô với chuyển động mượt hơn. (Trải nghiệm mượt mà hơn cho User, một lần chuyển 2 phim 'có vẻ' phù hợp (CHECK LẠI))
 
-## Giới hạn bản demo (HIỆN TẠI)
+Xem lý do, kết quả và gợi ý minh họa cho từng mốc trong [lịch sử chỉnh sửa chi tiết](CHANGELOG.md).
+
+## Giới hạn bản demo
+
 ### Lớn:
 - Với phim bộ, danh sách tập hiển thị tên, ảnh và thời lượng. Rạp Nhà chưa phát video từng tập do hạn chế về nguồn phát.
 - Chọn **Xem tại nguồn** để mở nền tảng phát hành khi có liên kết. **Tears of Steel** phát trực tiếp trên Rạp Nhà theo giấy phép CC BY 3.0.
@@ -21,6 +24,8 @@ Rạp Nhà là frontend đồ án Thiết kế giao diện người dùng, dựa
 - Trang chủ: Banner chưa tự động chuyển phim để quảng bá.
 - Avatar overlay: Phần ngôn ngữ nên ghi rõ "Language" (Nếu người không biết Tiếng Việt sẽ không biết chỗ nào để đổi ngôn ngữ, tuy đã có icon "toàn cầu" nhưng vẫn chưa đảm bảo được tính user-friendly)
 - Video player: Chưa có phần thua 10 giây vật lý (Optional, phù hợp cho tệp User bé)
+
+Xem [giới hạn chi tiết và các điểm cần cải tiến](DEMO_LIMITATIONS.md).
 
 ## Chạy trên máy
 
@@ -34,8 +39,6 @@ Trên trang chủ, **Top 10 phim gần đây** xếp theo ngày phát hành tạ
 2. Mở **Tết ở Làng Địa Ngục** để xem 12 tập với tên, thời lượng và ảnh từng tập. Chọn một tập để mở trang xem và đi đến Netflix. Trailer mở từ kênh chính thức.
 3. Mở **Tears of Steel** để sử dụng trình phát tích hợp. Có thể thử tua, đổi chất lượng, bật phụ đề tiếng Anh và xem tiếp từ vị trí đã lưu.
 4. Chọn **Đăng nhập → Dùng tài khoản mẫu** để xem theo dõi và lịch sử của Minh An. Có thể đăng ký bằng dữ liệu thử và mã OTP `123456`.
-
-Lịch sử lưu tiến độ của video phát trực tiếp trên Rạp Nhà. Với phim xem ở nền tảng khác, lịch sử chỉ ghi tập hoặc phim đã mở. Tài khoản và cài đặt lưu trên trình duyệt. Email liên hệ là địa chỉ ví dụ.
 
 ## Nguồn phim và hình ảnh
 
