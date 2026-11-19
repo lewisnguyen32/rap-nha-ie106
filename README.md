@@ -2,6 +2,8 @@
 
 Rạp Nhà là frontend đồ án Thiết kế giao diện người dùng, dựa trên wireframe gồm 15 màn hình. Website dùng HTML, CSS và JavaScript thuần và có 23 phim và series có thật.
 
+[![Đọc báo cáo audit giao diện desktop](docs/audit-desktop/audit-badge.svg)](docs/audit-desktop/README.md)
+
 Lịch sử chỉnh sửa
 
 1. Xây dựng giao diện thô từ wireframe, bổ sung tương tác tìm kiếm, lọc phim và lưu lịch sử xem trên trình duyệt. (Phước)
