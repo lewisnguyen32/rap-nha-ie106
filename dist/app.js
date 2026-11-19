@@ -6,7 +6,7 @@ const footer = document.querySelector("#site-footer");
 const trailer = document.querySelector("#trailer-dialog");
 const toast = document.querySelector("#toast");
 const prefix = "rap-nha.v1.";
-const defaults = { language: "vi", quality: "auto", captions: "vi", autoplay: true };
+const defaults = { language: "vi", autoplay: true };
 
 function read(key, fallback) {
   try { return JSON.parse(localStorage.getItem(prefix + key)) ?? fallback; }
@@ -45,7 +45,9 @@ const typeOf = film => film.episodeCount > 1 ? bi("Phim bộ", "Series") : bi("P
 const episodeLabel = number => bi(`Tập ${number}`, `Episode ${number}`);
 const episodeTitle = (film, number) => film.episodes?.[number - 1]?.[0] ?? (film.episodeCount === 1 ? film.title : episodeLabel(number));
 const episodeMinutes = (film, number) => film.episodes?.[number - 1]?.[1] ?? film.minutes;
-const episodeArt = (film, number) => film.episodes ? `${posterRoot}${film.id}-e${String(number).padStart(2, "0")}.jpg` : film.backdrop;
+const episodeImageName = (film, number) => `${film.id}-e${String(number).padStart(2, "0")}`;
+const episodeArt = (film, number) => film.episodes ? `${posterRoot}${episodeImageName(film, number)}.jpg` : film.backdrop;
+const playerArt = (film, number) => `${posterRoot}player/${film.episodes ? episodeImageName(film, number) : film.id}.webp`;
 const minutesLabel = minutes => bi(`${minutes} phút`, `${minutes} min`);
 const episodeCount = count => bi(`${count} tập`, `${count} episodes`);
 const genreInEnglish = {
@@ -227,23 +229,60 @@ function filmCard(film, { badge = "", rank } = {}) {
   </a>`;
 }
 
+function heroArtStyle(film) {
+  const art = film.heroBackdrop ?? backdropOf(film);
+  const focus = film.heroFocus ?? film.focus ?? "center 40%";
+  const mobileCrop = film.heroMobileCrop ? `;--art-mobile-crop:${film.heroMobileCrop}` : "";
+  return `--art:url('${art}');--art-focus:${focus}${mobileCrop}`;
+}
+
 function hero() {
-  const film = featured[heroIndex];
-  return `<div class="hero-art" style="--art:url('${backdropOf(film)}');--art-focus:${film.focus ?? "center 40%"}"></div>
+  return `<div class="hero-art" style="${heroArtStyle(featured[heroIndex])}"></div>
     <div class="frame hero-inner">
-      <div class="hero-copy">
-        <div class="featured-label">${icon("trend", 15)} ${bi("PHIM NỔI BẬT", "FEATURED TITLE")}</div>
-        <h1>${film.title}</h1>
-        <div class="film-meta">${film.score == null ? "" : `<span class="meta-score" title="${film.publisher}">${icon("star", 16)} ${scoreText(film.score)}</span>`}<span>${film.year}</span><span>${film.genres.map(genreLabel).join(", ")}</span><span>${film.episodeCount > 1 ? episodeCount(film.episodeCount) : minutesLabel(film.minutes)}</span></div>
-        <p>${film.description}</p>
-        <div class="actions"><a class="button primary" href="${routeToFilm(film)}">${icon("info", 19)}${bi("Chi tiết", "Details")}</a>
-          <button class="button translucent" type="button" data-action="trailer" data-film="${film.id}">${icon("trailer", 19)}${bi("Xem trailer", "Watch trailer")}</button></div>
+      <div class="hero-slides">
+        ${featured.map((film, index) => `<div class="hero-copy"${index === heroIndex ? "" : " inert"}>
+          <div class="featured-label">${icon("trend", 15)} ${bi("PHIM NỔI BẬT", "FEATURED TITLE")}</div>
+          <h1>${film.title}</h1>
+          <div class="film-meta">${film.score == null ? "" : `<span class="meta-score" title="${film.publisher}">${icon("star", 16)} ${scoreText(film.score)}</span>`}<span>${film.year}</span><span>${film.genres.map(genreLabel).join(", ")}</span><span>${film.episodeCount > 1 ? episodeCount(film.episodeCount) : minutesLabel(film.minutes)}</span></div>
+          <p>${film.description}</p>
+          <div class="actions"><a class="button primary" href="${routeToFilm(film)}">${icon("info", 19)}${bi("Chi tiết", "Details")}</a>
+            <button class="button translucent" type="button" data-action="trailer" data-film="${film.id}">${icon("trailer", 19)}${bi("Xem trailer", "Watch trailer")}</button></div>
+        </div>`).join("")}
       </div>
       <div class="hero-controls">
         <div class="carousel-dots" aria-label="${bi("Chọn phim nổi bật", "Select a featured title")}">${featured.map((item, index) => `<button type="button" data-action="hero-select" data-index="${index}" aria-label="${item.title}" aria-pressed="${index === heroIndex}"><span></span></button>`).join("")}</div>
         <div class="hero-arrows">${iconButton("left", bi("Phim nổi bật trước", "Previous featured title"), 'data-action="hero-prev"')}${iconButton("right", bi("Phim nổi bật tiếp theo", "Next featured title"), 'data-action="hero-next"')}</div>
       </div>
     </div>`;
+}
+
+function bindHeroTitles(section, signal) {
+  const titles = section.querySelectorAll(".hero-copy h1");
+
+  function fitTitles() {
+    for (const title of titles) {
+      title.style.fontSize = "";
+      const fitsTwoLines = () => title.offsetHeight <= 2 * parseFloat(getComputedStyle(title).lineHeight) + 1;
+      if (fitsTwoLines()) continue;
+
+      const defaultSize = parseFloat(getComputedStyle(title).fontSize);
+      let min = Math.ceil(defaultSize * 0.8);
+      let max = Math.floor(defaultSize);
+      while (min < max) {
+        const size = Math.ceil((min + max) / 2);
+        title.style.fontSize = `${size}px`;
+        if (fitsTwoLines()) min = size;
+        else max = size - 1;
+      }
+      title.style.fontSize = `${min}px`;
+    }
+  }
+
+  fitTitles();
+  window.addEventListener("resize", fitTitles, { signal });
+  document.fonts.ready.then(() => {
+    if (!signal.aborted) fitTitles();
+  });
 }
 
 const rankingCriterion = () => bi("Xếp theo thời điểm phát hành trong danh mục", "Ranked by release date in the catalogue");
@@ -352,8 +391,6 @@ const watching = (film, episode) => watchHistory().find(item => item.id === film
 const isFollowing = film => follows().some(item => item.id === film.id);
 const progressText = progress => `${Math.round(progress * 100)}%`;
 const external = 'target="_blank" rel="noopener noreferrer"';
-const trailerUrl = film => film.youtube ? `https://www.youtube.com/watch?v=${film.youtube}` : film.trailer || `${film.source}#lodp-trailers`;
-const filmSource = film => `<a class="source-link" href="${film.source}" ${external}>${bi("Nguồn", "Source")} · ${film.publisher} ${icon("arrow", 14)}</a>`;
 
 function filmCrumb(film, player = false) {
   return `<div class="crumb"><a href="#/">${bi("Trang chủ", "Home")}</a>${icon("right", 14)}<a href="${escapeHtml(catalogUrl({ type: film.episodeCount > 1 ? "series" : "movie" }))}">${typeOf(film)}</a>${icon("right", 14)}
@@ -371,14 +408,18 @@ function filmStats(film) {
   return `<dl class="film-stats">${entries.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("")}</dl>`;
 }
 
-function episodeList(film, current = null) {
+function episodeList(film, current = null, selectedPart) {
+  const partIndex = selectedPart ?? Math.max(0, film.parts.findIndex(part => current >= part.first && current <= part.last));
+  const { first, last } = film.parts[partIndex];
+  const partLabel = index => bi(`Phần ${index + 1}`, `Part ${index + 1}`);
   const summary = current
     ? bi(`Tập đang chọn ${current}/${film.episodeCount}`, `Selected episode ${current} of ${film.episodeCount}`)
     : episodeCount(film.episodeCount);
   return `<section class="episode-section" aria-labelledby="episode-title">
-    <div class="episode-head"><div><h2 id="episode-title">${bi("Danh sách tập", "Episodes")}</h2><p>${summary}</p></div><span class="season-label">${bi("Phần 1", "Season 1")}</span></div>
-    <div class="episode-grid">${Array.from({ length: film.episodeCount }, (_, index) => {
-      const number = index + 1;
+    <div class="episode-head"><div><h2 id="episode-title">${bi("Danh sách tập", "Episodes")}</h2><p>${summary}</p></div>
+    ${film.parts.length > 1 ? `<select id="episode-part" aria-label="${bi("Chọn phần", "Choose part")}">${videoOptions(film.parts.map((_, index) => [index, partLabel(index)]), partIndex)}</select>` : `<span class="season-label">${partLabel(0)}</span>`}</div>
+    <div class="episode-grid">${Array.from({ length: last - first + 1 }, (_, index) => {
+      const number = first + index;
       const progress = watching(film, number)?.progress ?? 0;
       return `<a class="episode-card" href="${routeToPlayer(film, number)}" ${current === number ? 'aria-current="page"' : ""}>
         <div class="episode-art"><img src="${episodeArt(film, number)}" alt="" loading="lazy"><span>${episodeLabel(number)}</span>${icon("play", 23)}</div>
@@ -392,8 +433,8 @@ function episodeList(film, current = null) {
 function detailPage(film) {
   const saved = isFollowing(film);
   const recent = watchHistory().find(item => item.id === film.id && Number.isFinite(item.progress) && item.progress < .98);
-  const playLabel = film.media ? (recent ? bi("Xem tiếp", "Resume") : bi("Xem phim", "Watch film"))
-    : film.episodes ? episodeLabel(1) : bi("Xem trailer", "Watch trailer");
+  const playLabel = recent ? bi("Xem tiếp", "Resume")
+    : film.episodes ? bi("Xem tập 1", "Watch episode 1") : bi("Xem phim", "Watch film");
   return `<section class="film-detail" style="--art:url('${backdropOf(film)}');--art-focus:${film.focus ?? "center 40%"}">
     <div class="frame">${filmCrumb(film)}
       <div class="detail-layout"><img class="detail-poster" src="${film.poster}" alt="Poster · ${film.title}" width="252" height="339">
@@ -404,9 +445,9 @@ function detailPage(film) {
           <p class="detail-description">${film.description}</p>
           ${filmStats(film)}
           <div class="actions"><a class="button primary" href="${routeToPlayer(film, recent?.episode)}">${icon("play", 22)}${playLabel}</a>
-            ${film.media || film.episodes ? `<button class="button secondary" type="button" data-action="trailer" data-film="${film.id}">${icon("trailer", 20)} Trailer</button>` : (film.watch ? officialWatch(film, 1) : "")}
+            <button class="button secondary" type="button" data-action="trailer" data-film="${film.id}">${icon("trailer", 20)} Trailer</button>
             <button class="button secondary follow-button" type="button" data-action="follow" data-film="${film.id}" aria-pressed="${saved}">${icon(saved ? "check" : "bookmark", 18)}${bi("Theo dõi", "Watchlist")}</button>
-          </div><div class="film-sources">${filmSource(film)}${film.artSource ? `<a class="source-link" href="${film.artSource[1]}" ${external}>Poster · ${film.artSource[0]} ${icon("arrow", 14)}</a>` : ""}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -422,81 +463,38 @@ function detailPage(film) {
   </div>`;
 }
 
-const captions = () => [["off", bi("Tắt phụ đề", "Captions off")], ["vi", "Tiếng Việt"], ["en", "English"]];
-const qualities = [["auto", "Auto"], ["540", "540p"], ["360", "360p"]];
-if (!qualities.some(([id]) => id === settings.quality)) settings.quality = "auto";
 const videoOptions = (options, value) => options.map(([id, name]) => `<option value="${id}" ${id === value ? "selected" : ""}>${name}</option>`).join("");
-const sourceForQuality = (media, quality) => media.alternatives[quality] ?? media.source;
-
-function officialWatch(film, episode, primary = false) {
-  if (!film.watch) return "";
-  return `<a class="button ${primary ? "primary" : "secondary"}" href="${film.watch}" ${external} data-action="source-watch" data-film="${film.id}" data-episode="${episode}">${bi("Xem tại nguồn", "Watch at source")} ${icon("arrow", 16)}</a>`;
-}
 
 function trailerPanel(film) {
   const publisher = film.trailerPublisher ?? film.publisher;
-  const href = trailerUrl(film);
-  const embed = film.youtube ? `https://www.youtube-nocookie.com/embed/${film.youtube}` : film.trailerEmbed;
-  if (embed) return `<div class="official-trailer">
-    <iframe src="${embed}" title="Trailer · ${film.title}" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
-    <a class="source-link" href="${href}" ${external}>${film.youtube ? bi("Mở trên YouTube", "Open on YouTube") : bi("Mở tại nguồn", "Open at source")} · ${publisher} ${icon("arrow", 14)}</a>
-  </div>`;
-  return `<div class="episode-preview" style="--art:url('${film.backdrop}')">
-    <a class="button primary" href="${href}" ${external}>${icon("play", 20)}${bi("Xem trailer tại", "Watch trailer on")} ${publisher} ${icon("arrow", 16)}</a>
-  </div>`;
-}
-
-function officialWatchPage(film, current) {
-  const series = Boolean(film.episodes);
-  const length = episodeMinutes(film, current);
-  return `<div class="frame inner-page watch-page">
-    ${filmCrumb(film, true)}
-    ${series
-      ? `<div class="episode-preview" style="--art:url('${episodeArt(film, current)}')">${officialWatch(film, current, true)}</div>`
-      : trailerPanel(film)}
-    <div class="watch-heading">
-      <div><div class="type-label">${series ? episodeLabel(current) : "Trailer"}</div><h1>${film.title}${series ? ` <span>· ${episodeTitle(film, current)}</span>` : ""}</h1>
-        <p>${series && length ? `${minutesLabel(length)} · ` : ""}${film.publisher}</p></div>
-      <div class="actions">
-        ${series ? `<button class="button secondary" type="button" data-action="trailer" data-film="${film.id}">${icon("trailer", 18)} Trailer</button>` : (officialWatch(film, current) || filmSource(film))}
-        ${current > 1 ? `<a class="button secondary" href="${routeToPlayer(film, current - 1)}">${icon("left", 17)}${bi("Tập trước", "Previous episode")}</a>` : ""}
-        ${current < film.episodeCount ? `<a class="button secondary" href="${routeToPlayer(film, current + 1)}">${bi("Tập tiếp theo", "Next episode")}${icon("right", 17)}</a>` : ""}
-      </div>
-    </div>
-    ${series ? episodeList(film, current) : ""}
+  return `<div class="official-trailer">
+    <iframe src="https://www.youtube-nocookie.com/embed/${film.youtube}" title="Trailer · ${film.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    <a class="source-link" href="https://www.youtube.com/watch?v=${film.youtube}" ${external}>${bi("Mở trên YouTube", "Open on YouTube")} · ${publisher} ${icon("arrow", 14)}</a>
   </div>`;
 }
 
 function videoPlayer(film, episode) {
-  const prev = episode > 1;
-  const next = episode < film.episodeCount;
   const playLabel = bi("Phát", "Play");
-  const enabledCaptions = captions().filter(([id]) => id === "off" || Object.hasOwn(film.media.captions, id));
-  const subtitlePreference = enabledCaptions.some(([id]) => id === settings.captions) ? settings.captions : "off";
-  return `<div class="player" data-player>
-    <video preload="metadata" playsinline poster="${backdropOf(film)}" aria-label="${film.title}" src="${sourceForQuality(film.media, settings.quality)}">
-      ${enabledCaptions.filter(([id]) => id !== "off").map(([id, name]) => `<track kind="subtitles" src="${film.media.captions[id]}" srclang="${id}" label="${name}" ${id === subtitlePreference ? "default" : ""}>`).join("")}
-    </video>
+  return `<div class="player" data-player="${episode}" role="group" aria-label="${bi("Trình phát mô phỏng", "Demo player")}">
+    <img class="player-still" src="${playerArt(film, episode)}" width="1920" height="1080" alt="" draggable="false">
+    <span class="player-demo-label">${bi("Mô phỏng bằng ảnh tĩnh", "Still-image demo")}</span>
     <button class="player-big-play" type="button" data-video="play" aria-label="${playLabel}">${icon("play", 42)}</button>
     <div class="video-controls">
       <label class="seek-control"><span class="sr-only">${bi("Vị trí phát", "Seek position")}</span><input type="range" data-video="seek" min="0" max="1000" value="0"></label>
       <div class="video-buttons">
         <div>
-          ${prev ? `<a class="icon-button prev-video" href="${routeToPlayer(film, episode - 1)}" aria-label="${bi("Tập trước", "Previous episode")}" title="${bi("Tập trước", "Previous episode")}">${icon("skip")}</a>` : ""}
+          ${episode > 1 ? `<a class="icon-button prev-video" href="${routeToPlayer(film, episode - 1)}" aria-label="${bi("Tập trước", "Previous episode")}" title="${bi("Tập trước", "Previous episode")}">${icon("skip")}</a>` : ""}
           ${iconButton("play", playLabel, 'data-video="play"')}
-          ${next ? `<a class="icon-button" href="${routeToPlayer(film, episode + 1)}" aria-label="${bi("Tập sau", "Next episode")}" title="${bi("Tập sau", "Next episode")}">${icon("skip")}</a>` : ""}
-          ${iconButton("volume", bi("Tắt tiếng", "Mute"), 'data-video="mute"')}
-          <label class="volume-control"><span class="sr-only">${bi("Âm lượng", "Volume")}</span><input type="range" data-video="volume" min="0" max="1" step="0.05" value="1"></label>
-          <span class="video-time" data-time>00:00 / 00:00</span>
+          ${episode < film.episodeCount ? `<a class="icon-button" href="${routeToPlayer(film, episode + 1)}" aria-label="${bi("Tập sau", "Next episode")}" title="${bi("Tập sau", "Next episode")}">${icon("skip")}</a>` : ""}
+          <span class="video-time" data-time></span>
         </div>
         <div>
-          <label class="video-select" title="${bi("Phụ đề", "Captions")}">${icon("captions", 18)}<span class="sr-only">${bi("Phụ đề", "Captions")}</span><select data-video="captions">${videoOptions(enabledCaptions, subtitlePreference)}</select></label>
-          <label class="video-select" title="${bi("Chất lượng video", "Video quality")}"><span class="sr-only">${bi("Chất lượng video", "Video quality")}</span><select data-video="quality">${videoOptions(qualities, settings.quality)}</select></label>
+          ${iconButton("volume", bi("Tắt tiếng", "Mute"), 'data-video="mute"')}
+          <label class="volume-control"><span class="sr-only">${bi("Âm lượng", "Volume")}</span><input type="range" data-video="volume" min="0" max="1" step="0.05" value="1"></label>
           ${iconButton("fullscreen", bi("Toàn màn hình", "Fullscreen"), 'data-video="fullscreen"')}
         </div>
       </div>
     </div>
-    <div class="video-error" data-video-error role="status" hidden><p>${bi("Không thể phát video.", "Video playback is unavailable.")}</p><button type="button" class="button secondary" data-video="retry">${bi("Thử lại", "Retry")}</button></div>
   </div>`;
 }
 
@@ -505,187 +503,188 @@ function playerPage(film, current) {
     ${filmCrumb(film, true)}
     ${videoPlayer(film, current)}
     <div class="watch-heading">
-      <div><div class="type-label">${bi("PHIM MỞ", "OPEN FILM")}</div><h1>${film.title}${film.episodeCount > 1 ? ` <span>· ${episodeLabel(current)}</span>` : ""}</h1>
-        <p>${film.episodes ? `${episodeTitle(film, current)} · ` : ""}${minutesLabel(episodeMinutes(film, current))} · <a class="source-link" href="${film.media.license}" ${external}>${film.media.credit}</a></p></div>
+      <div><div class="type-label">${film.episodes ? episodeLabel(current) : typeOf(film)}</div><h1>${film.title}</h1>
+        <p>${film.episodes ? `${episodeTitle(film, current)} · ` : ""}${minutesLabel(episodeMinutes(film, current))}${film.id === "tears-of-steel" ? " · © Blender Foundation · CC BY 3.0" : ""}</p></div>
       <div class="actions">
-        <a class="button secondary" href="${film.media.watch}" ${external}>${bi("Bản chính thức trên YouTube", "Official YouTube release")} ${icon("arrow", 15)}</a>
-        ${current > 1 ? `<a class="button secondary" href="${routeToPlayer(film, current - 1)}">${icon("left", 17)}${bi("Tập trước", "Previous")}</a>` : ""}
+        <button class="button secondary" type="button" data-action="trailer" data-film="${film.id}">${icon("trailer", 18)} Trailer</button>
+        ${current > 1 ? `<a class="button secondary" href="${routeToPlayer(film, current - 1)}">${icon("left", 17)}${bi("Tập trước", "Previous episode")}</a>` : ""}
         ${current < film.episodeCount ? `<a class="button secondary" href="${routeToPlayer(film, current + 1)}">${bi("Tập tiếp theo", "Next episode")}${icon("right", 17)}</a>` : ""}
       </div>
     </div>
-    ${film.episodeCount > 1 ? episodeList(film, current) : ""}
+    ${film.episodes ? episodeList(film, current) : ""}
   </div>`;
 }
 
-const videoTime = seconds => `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+const videoTime = seconds => {
+  const total = Math.floor(seconds);
+  const hours = Math.floor(total / 3600);
+  const minutes = String(Math.floor(total / 60) % 60).padStart(2, "0");
+  const remainder = String(total % 60).padStart(2, "0");
+  return hours ? `${hours}:${minutes}:${remainder}` : `${minutes}:${remainder}`;
+};
+
 function bindPlayer(container, film, episode) {
-  const video = container.querySelector("video");
-  const seek = container.querySelector('[data-video="seek"]');
-  const duration = container.querySelector("[data-time]");
-  const playbackError = container.querySelector("[data-video-error]");
+  const seek = container.querySelector("[data-video=seek]");
+  const time = container.querySelector("[data-time]");
+  const controls = container.querySelector(".video-controls");
+  const play = controls.querySelector("[data-video=play]");
+  const mute = controls.querySelector("[data-video=mute]");
+  const volume = controls.querySelector("[data-video=volume]");
+  const fullscreen = controls.querySelector("[data-video=fullscreen]");
   const events = new AbortController();
   const options = { signal: events.signal };
-  let volume = read("volume", 1);
-  let quality = settings.quality;
-  let position = 0;
-  let resumeProgress = watching(film, episode)?.progress ?? 0;
-  let resumePlaying = false;
-  let started = false;
-  let lastSave = 0;
-  let switchingSource = false;
+  const duration = episodeMinutes(film, episode) * 60;
+  const previousProgress = watching(film, episode)?.progress ?? 0;
   const historyKey = accountKey("history");
   const initialHistory = watchHistory();
-  video.volume = volume;
-  container.querySelector('[data-video="volume"]').value = volume;
+  let elapsed = previousProgress > 0 && previousProgress < .98 ? duration * previousProgress : 0;
+  let lastTick = 0;
+  let lastSave = 0;
+  let timer;
+  let interacted = false;
+  let savedVolume = Number(read("volume", 1));
+  volume.value = savedVolume;
+
+  function syncTime() {
+    const ratio = elapsed / duration;
+    seek.value = Math.round(ratio * 1000);
+    seek.style.setProperty("--played", `${ratio * 100}%`);
+    seek.setAttribute("aria-valuetext", `${videoTime(elapsed)} / ${videoTime(duration)}`);
+    time.textContent = seek.getAttribute("aria-valuetext");
+  }
 
   function saveProgress(force = false) {
-    if (!started || switchingSource || !Number.isFinite(video.duration) || !video.duration) return;
-    if (!force && Date.now() - lastSave < 1000) return;
+    if (!interacted || (!force && Date.now() - lastSave < 1000)) return;
     lastSave = Date.now();
-    const progress = video.ended ? 1 : Math.min(1, video.currentTime / video.duration);
-    if (!progress) return;
-    const stored = read(historyKey, initialHistory).filter(item => filmById[item.id]);
-    const records = stored.length ? stored : initialHistory;
-    const remaining = records.filter(item => item.id !== film.id || item.episode !== episode);
-    write(historyKey, [{ id: film.id, episode, progress, viewed: now() }, ...remaining].slice(0, 100));
-    const currentEpisode = main.querySelector(".episode-card[aria-current]");
-    if (currentEpisode) {
-      let bar = currentEpisode.querySelector("progress");
-      if (!bar) {
-        bar = document.createElement("progress");
-        bar.max = 1;
-        bar.setAttribute("aria-label", bi("Tiến độ xem", "Watch progress"));
-        currentEpisode.querySelector(".episode-copy").append(bar);
-      }
-      bar.value = progress;
+    const progress = elapsed / duration;
+    const records = read(historyKey, initialHistory).filter(item => filmById[item.id] && (item.id !== film.id || item.episode !== episode));
+    write(historyKey, [{ id: film.id, episode, progress, viewed: now() }, ...records].slice(0, 100));
+    const currentCard = main.querySelector(".episode-card[aria-current]");
+    if (!currentCard) return;
+    let bar = currentCard.querySelector("progress");
+    if (!bar) {
+      bar = document.createElement("progress");
+      bar.max = 1;
+      bar.setAttribute("aria-label", bi("Tiến độ xem", "Watch progress"));
+      currentCard.querySelector(".episode-copy").append(bar);
     }
+    bar.value = progress;
   }
 
-  function sync() {
-    const elapsed = video.currentTime;
-    const total = Number.isFinite(video.duration) ? video.duration : 0;
-    const ratio = total ? elapsed / total : 0;
-    if (!switchingSource) {
-      seek.value = Math.round(ratio * 1000);
-      seek.style.setProperty("--played", `${ratio * 100}%`);
-      duration.textContent = `${videoTime(elapsed)} / ${videoTime(total)}`;
-    }
-    const paused = video.paused || video.ended;
-    container.classList.toggle("is-playing", !paused);
-    const control = container.querySelector(".video-buttons [data-video=play]");
-    const label = paused ? bi("Phát", "Play") : bi("Tạm dừng", "Pause");
-    control.innerHTML = icon(paused ? "play" : "pause");
-    control.title = label;
-    control.setAttribute("aria-label", label);
-    const mute = container.querySelector('[data-video="mute"]');
-    const muted = video.muted || video.volume === 0;
-    mute.innerHTML = icon(muted ? "mute" : "volume");
-    mute.title = muted ? bi("Bật tiếng", "Unmute") : bi("Tắt tiếng", "Mute");
-    mute.setAttribute("aria-label", mute.title);
+  function updateButton(button, symbol, label) {
+    button.innerHTML = icon(symbol);
+    button.title = label;
+    button.setAttribute("aria-label", label);
   }
 
-  function play() {
-    playbackError.hidden = true;
-    video.play().catch(error => {
-      if (error.name === "NotAllowedError") return;
-      if (!events.signal.aborted && error.name !== "AbortError") playbackError.hidden = false;
-    });
+  function syncPlay() {
+    const playing = timer !== undefined;
+    container.classList.toggle("is-playing", playing);
+    updateButton(play, playing ? "pause" : "play", playing ? bi("Tạm dừng", "Pause") : bi("Phát", "Play"));
   }
 
-  video.addEventListener("loadedmetadata", () => {
-    if (resumeProgress > 0 && resumeProgress < .98) position = resumeProgress * video.duration;
-    resumeProgress = 0;
-    video.currentTime = Math.min(position, Math.max(0, video.duration - .1));
-    switchingSource = false;
-    syncCaptions(container.querySelector('[data-video="captions"]').value);
-    if (resumePlaying) {
-      resumePlaying = false;
-      play();
-    }
-    sync();
-  }, options);
-  video.addEventListener("play", () => { started = true; sync(); }, options);
-  video.addEventListener("pause", () => { saveProgress(true); sync(); }, options);
-  video.addEventListener("timeupdate", () => { saveProgress(); sync(); }, options);
-  video.addEventListener("volumechange", sync, options);
-  video.addEventListener("error", () => { playbackError.hidden = false; }, options);
-  video.addEventListener("ended", () => {
+  function syncVolume() {
+    const muted = Number(volume.value) === 0;
+    updateButton(mute, muted ? "mute" : "volume", muted ? bi("Bật tiếng", "Unmute") : bi("Tắt tiếng", "Mute"));
+  }
+
+  function pause() {
+    clearInterval(timer);
+    timer = undefined;
     saveProgress(true);
-    sync();
+    syncPlay();
+  }
+
+  function tick() {
+    const now = performance.now();
+    elapsed = Math.min(duration, elapsed + (now - lastTick) / 1000);
+    lastTick = now;
+    syncTime();
+    if (elapsed < duration) {
+      saveProgress();
+      return;
+    }
+    pause();
     if (settings.autoplay && episode < film.episodeCount) {
       autoplayRoute = routeToPlayer(film, episode + 1);
       go(autoplayRoute);
     }
-  }, options);
+  }
+
+  function start() {
+    interacted = true;
+    if (elapsed >= duration) elapsed = 0;
+    lastTick = performance.now();
+    timer = setInterval(tick, 200);
+    syncTime();
+    syncPlay();
+  }
+
+  function expanded() {
+    return document.fullscreenElement === container || container.classList.contains("is-expanded");
+  }
+
+  function syncFullscreen() {
+    updateButton(fullscreen, "fullscreen", expanded() ? bi("Thoát toàn màn hình", "Exit fullscreen") : bi("Toàn màn hình", "Fullscreen"));
+  }
+
+  async function toggleFullscreen() {
+    if (document.fullscreenElement === container) {
+      await document.exitFullscreen().catch(() => {});
+    } else if (container.classList.contains("is-expanded")) {
+      container.classList.remove("is-expanded");
+    } else {
+      try {
+        await container.requestFullscreen();
+      } catch {
+        if (container.isConnected) container.classList.add("is-expanded");
+      }
+    }
+    syncFullscreen();
+  }
 
   container.addEventListener("click", event => {
     const control = event.target.closest("[data-video]");
-    const action = control?.dataset.video ?? (event.target === video ? "play" : "");
+    const action = control?.dataset.video ?? (event.target.matches(".player-still") ? "play" : "");
     if (action === "play") {
-      if (video.paused) play();
-      else video.pause();
+      if (timer === undefined) {
+        start();
+        if (control?.classList.contains("player-big-play")) play.focus({ preventScroll: true });
+      } else pause();
     } else if (action === "mute") {
-      if (video.volume === 0) {
-        video.volume = .6;
-        container.querySelector('[data-video="volume"]').value = .6;
-      } else video.muted = !video.muted;
-    } else if (action === "fullscreen") {
-      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-      else if (container.requestFullscreen) container.requestFullscreen().catch(() => {});
-      else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
-    } else if (action === "retry") {
-      playbackError.hidden = true;
-      video.load();
-      play();
-    }
+      volume.value = Number(volume.value) === 0 ? savedVolume || .6 : 0;
+      syncVolume();
+    } else if (action === "fullscreen") toggleFullscreen();
   }, options);
-  container.addEventListener("input", event => {
-    const { value, dataset } = event.target;
-    if (dataset.video === "seek" && Number.isFinite(video.duration)) {
-      video.currentTime = video.duration * Number(value) / 1000;
-      sync();
-    } else if (dataset.video === "volume") {
-      volume = Number(value);
-      video.volume = volume;
-      video.muted = false;
-      write("volume", volume);
-    }
-  }, options);
-  function syncCaptions(language) {
-    for (const track of video.textTracks) track.mode = track.language === language ? "showing" : "disabled";
-  }
 
-  container.addEventListener("change", event => {
-    const { value, dataset } = event.target;
-    if (dataset.video === "captions") {
-      syncCaptions(value);
-    } else if (dataset.video === "quality" && quality !== value) {
-      const sameSource = sourceForQuality(film.media, quality) === sourceForQuality(film.media, value);
-      quality = value;
-      if (sameSource) return;
-      if (!switchingSource) {
-        resumePlaying = !video.paused;
-        position = video.currentTime;
-      }
-      switchingSource = true;
-      playbackError.hidden = true;
-      video.src = sourceForQuality(film.media, quality);
-      video.load();
+  container.addEventListener("input", event => {
+    if (event.target === seek) {
+      interacted = true;
+      elapsed = duration * Number(seek.value) / 1000;
+      lastTick = performance.now();
+      syncTime();
+    } else if (event.target === volume) {
+      if (Number(volume.value) > 0) savedVolume = Number(volume.value);
+      write("volume", Number(volume.value));
+      syncVolume();
     }
   }, options);
-  window.addEventListener("pagehide", () => saveProgress(true), options);
-  if (autoplayRoute === location.hash) play();
+  seek.addEventListener("change", () => saveProgress(true), options);
+  document.addEventListener("fullscreenchange", syncFullscreen, options);
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && container.classList.contains("is-expanded")) toggleFullscreen();
+  }, options);
+  window.addEventListener("pagehide", pause, options);
+
+  syncTime();
+  syncVolume();
+  if (autoplayRoute === location.hash) start();
   autoplayRoute = "";
-  sync();
   return () => {
-    saveProgress(true);
+    pause();
     events.abort();
-    video.pause();
-    video.removeAttribute("src");
-    video.load();
   };
 }
-
 let autoplayRoute = "";
 
 function openTrailer(film, trigger) {
@@ -817,7 +816,7 @@ function accountPage(page) {
   const [, , title] = accountLinks().find(([id]) => id === page);
   const content = {
     "tai-khoan": [bi("Quản lý thông tin tài khoản của bạn.", "Manage your account information."), profilePage],
-    "lich-su": [bi("Phim đã phát và các tập đã mở tại nguồn.", "Films played here and episodes opened at the source."), historyPage],
+    "lich-su": [bi("Phim và tập bạn đã mở trong trình phát.", "Films and episodes you opened in the player."), historyPage],
     "theo-doi": [bi("Những phim bạn đã lưu để xem sau.", "Films you saved to watch later."), followPage],
     "cai-dat": [bi("Tùy chỉnh ngôn ngữ và trình phát.", "Customize your language and player."), settingsPage],
   };
@@ -851,8 +850,6 @@ function settingsPage() {
   return `<section class="panel pref-panel"><h2>${icon("globe", 20)}${bi("Ngôn ngữ", "Language")}</h2>
     ${preference(bi("Ngôn ngữ giao diện", "Interface language"), bi("Chọn ngôn ngữ hiển thị trên Rạp Nhà.", "Choose your language for Rạp Nhà."), { id: "language", options: [["vi", "Tiếng Việt"], ["en", "English"]] })}</section>
     <section class="panel pref-panel"><h2>${icon("movie", 20)}${bi("Trình phát", "Player")}</h2>
-      ${preference(bi("Chất lượng mặc định", "Default quality"), bi("Độ phân giải ưu tiên khi mở phim.", "Preferred resolution when you open a film."), { id: "quality", options: qualities })}
-      ${preference(bi("Phụ đề mặc định", "Default captions"), bi("Ngôn ngữ phụ đề khi có bản tương ứng.", "Preferred caption language when available."), { id: "captions", options: captions() })}
       ${preference(bi("Tự động phát tập tiếp theo", "Autoplay next episode"), bi("Áp dụng cho các tập phát trong trình phát Rạp Nhà.", "Applies to episodes played in the Rạp Nhà player."), { id: "autoplay" })}</section>`;
 }
 
@@ -871,11 +868,11 @@ function historyPage() {
         <a class="history-art" href="${routeToPlayer(film, item.episode)}" aria-label="${film.title}"><img src="${episodeArt(film, item.episode)}" alt="" loading="lazy"></a>
         <div class="history-info"><h2><a href="${routeToFilm(film)}">${film.title}</a></h2>
           <p>${film.episodeCount > 1 ? episodeLabel(item.episode) : typeOf(film)} · ${prettyDate(item.viewed)}</p>
-          ${tracked ? `<div class="progress-row"><progress value="${item.progress}" max="1" aria-label="${bi("Tiến độ xem", "Watch progress")}"></progress><span>${progressText(item.progress)}</span></div>` : `<span class="source-status">${bi("Đã mở tại nguồn", "Opened at source")}</span>`}</div>
+          ${tracked ? `<div class="progress-row"><progress value="${item.progress}" max="1" aria-label="${bi("Tiến độ xem", "Watch progress")}"></progress><span>${progressText(item.progress)}</span></div>` : `<span class="source-status">${bi("Đã mở", "Opened")}</span>`}</div>
         <div class="history-actions"><a class="button secondary small" href="${routeToPlayer(film, item.episode)}">${icon(finished ? "check" : tracked ? "play" : "arrow", 16)}${action}</a>
           ${iconButton("trash", bi("Xóa khỏi lịch sử", "Remove from history"), `data-action="remove-history" data-film="${film.id}" data-episode="${item.episode}"`)}</div>
       </article>`;
-    }).join("")}</div>` : emptyState("clock", bi("Chưa có phim ở đây", "No films here yet"), bi("Lịch sử ghi lại video bạn phát trên Rạp Nhà và các liên kết xem phim bạn mở tại nguồn.", "History lists videos played here and viewing links you opened at the source."), catalogUrl(), bi("Khám phá phim", "Discover films"))}`;
+    }).join("")}</div>` : emptyState("clock", bi("Chưa có phim ở đây", "No films here yet"), bi("Phát một phim hoặc tập để lưu tiến độ ở đây.", "Play a film or episode to save progress here."), catalogUrl(), bi("Khám phá phim", "Discover films"))}`;
 }
 
 function followPage() {
@@ -895,7 +892,7 @@ function aboutPage() {
   return `<div class="frame inner-page about-page">${pageTitle(bi("Giới thiệu & liên hệ", "About & contact"))}
     <div class="about-grid"><section class="panel about-panel"><div class="about-art"></div><div class="about-copy">
       <h2>${bi("Về Rạp Nhà", "About Rạp Nhà")}</h2>
-      <p>${bi("Rạp Nhà là bản mẫu khám phá phim của nhóm đồ án IE106. Bạn có thể tìm phim, xem trailer chính thức và mở phim hoặc tập tại nền tảng phát hành.", "Rạp Nhà is a film discovery prototype for the IE106 course. Browse titles, watch official trailers and open films or episodes with their providers.")}</p>
+      <p>${bi("Rạp Nhà là bản mẫu khám phá phim của nhóm đồ án IE106. Bạn có thể tìm phim, xem trailer YouTube và thử trình phát ảnh tĩnh cho từng phim hoặc tập.", "Rạp Nhà is a film discovery prototype for the IE106 course. Browse titles, watch YouTube trailers, and try the still-image player for each film or episode.")}</p>
       <p>${bi("Đồ án học phần Thiết kế giao diện người dùng · Trường Đại học Công nghệ Thông tin.", "User Interface Design course project · University of Information Technology.")}</p></div></section>
     <section class="panel contact-panel" id="lien-he"><span class="auth-icon">${icon("mail", 23)}</span><h2>${bi("Liên hệ", "Contact")}</h2><p>${bi("Góp ý về giao diện hoặc báo lỗi cho nhóm đồ án.", "Share feedback or report an issue to the project team.")}</p>
       <a class="button secondary" href="mailto:rapnha.ie106@example.com">${icon("mail", 17)} rapnha.ie106@example.com</a><small>${bi("Địa chỉ minh họa", "Example address")}</small></section></div></div>`;
@@ -903,11 +900,11 @@ function aboutPage() {
 
 function faqPage() {
   const questions = [
-    [bi("Tôi có thể xem thông tin phim khi chưa đăng nhập không?", "Can I browse films without an account?"), bi("Có. Bạn có thể tìm phim, xem trailer chính thức và mở phim tại nguồn phát hành. Phim mở Tears of Steel phát trực tiếp trên Rạp Nhà.", "Yes. Search films, watch official trailers and open films with their providers. The open film Tears of Steel plays directly on Rạp Nhà.")],
+    [bi("Tôi có thể xem thông tin phim khi chưa đăng nhập không?", "Can I browse films without an account?"), bi("Có. Bạn có thể tìm phim, xem trailer YouTube và dùng trình phát mô phỏng.", "Yes. You can search films, watch YouTube trailers, and use the demo player.")],
     [bi("Tôi đăng ký và xác nhận tài khoản như thế nào?", "How do I register and verify my account?"), bi("Mở Đăng ký, điền thông tin rồi nhập mã OTP mẫu hiển thị trên màn hình xác nhận. Bạn cũng có thể chọn Dùng tài khoản mẫu ở màn hình Đăng nhập.", "Open registration, fill in the form and enter the demo code displayed on the verification screen. You can also use the demo account from the sign-in screen.")],
-    [bi("Tôi tìm lại phim đang xem ở đâu?", "Where can I find a film I started?"), bi("Sau khi đăng nhập, mở Lịch sử xem từ menu avatar. Bạn có thể xem tiếp video đã phát trên Rạp Nhà hoặc tìm lại tập đã mở tại nguồn. Nền tảng phát hành quản lý tiến độ của riêng họ.", "Open Watch history from the account menu. Resume videos played here or find episodes opened at the source. The provider manages its own playback progress.")],
+    [bi("Tôi tìm lại phim đang xem ở đâu?", "Where can I find a film I started?"), bi("Sau khi đăng nhập, mở Lịch sử xem từ menu avatar để mở lại phim hoặc tập và tiếp tục từ vị trí đã lưu.", "Open Watch history from the account menu to reopen a film or episode and resume from your saved position.")],
     [bi("Tôi sắp xếp danh sách theo dõi như thế nào?", "How do I sort my watchlist?"), bi("Mở Theo dõi từ menu avatar và chọn sắp xếp theo năm phát hành hoặc ngày bạn thêm phim.", "Open Watchlist from the account menu and sort by release year or the date you added a film.")],
-    [bi("Tôi đổi ngôn ngữ hoặc phụ đề ở đâu?", "How do I change language or captions?"), bi("Mở Cài đặt để đổi ngôn ngữ giao diện và phụ đề mặc định. Bạn cũng có thể đổi phụ đề ngay trên trình phát.", "Open Settings to change your interface language and default captions. You can also change captions from the player.")],
+    [bi("Tôi đổi ngôn ngữ giao diện ở đâu?", "How do I change the interface language?"), bi("Mở Cài đặt hoặc menu avatar để chọn Tiếng Việt hoặc English.", "Open Settings or the account menu to choose Vietnamese or English.")],
   ];
   return `<div class="frame inner-page faq-page">${pageTitle(bi("Câu hỏi thường gặp", "Frequently asked questions"), bi("Tìm câu trả lời về tài khoản, phim và trình phát Rạp Nhà.", "Find answers about your account, films and the Rạp Nhà player."))}
     <div class="faq-list">${questions.map(([question, answer], index) => `<details class="panel" name="faq" ${index ? "" : "open"}><summary>${question} ${icon("down", 20)}</summary><p>${answer}</p></details>`).join("")}</div>
@@ -917,7 +914,7 @@ function faqPage() {
 function termsPage() {
   return `<div class="frame inner-page faq-page">${pageTitle(bi("Điều khoản", "Terms"))}
     <section class="panel terms-panel"><h2>${bi("Bản trình diễn IE106", "IE106 demonstration")}</h2>
-    <p>${bi("Danh mục dùng tên phim và hình ảnh từ các nguồn được ghi trên từng trang chi tiết. Trailer do kênh phát hành cung cấp. Phim mở Tears of Steel của Blender Foundation được phát theo giấy phép CC BY 3.0.", "The catalogue uses film titles and images from the sources shown on each detail page. Trailers are supplied by publishers. Blender Foundation’s open film Tears of Steel is shown under CC BY 3.0.")}</p>
+    <p>${bi("Bản demo dùng ảnh tĩnh để mô phỏng phát phim. Trailer được nhúng từ YouTube.", "The demo uses still images to simulate playback. Trailers are embedded from YouTube.")}</p>
     <p>${bi("Thông tin đăng ký, lịch sử, theo dõi và cài đặt lưu trong trình duyệt đang dùng. Bạn có thể xóa chúng trong phần dữ liệu trang web của trình duyệt.", "Registration, history, watchlist and settings are stored in your browser. You can clear them from your browser’s site data settings.")}</p></section></div>`;
 }
 
@@ -1069,6 +1066,7 @@ function render({ focus = false, scroll = true } = {}) {
   if (!page) {
     main.innerHTML = homePage();
     const events = new AbortController();
+    bindHeroTitles(main.querySelector("#hero"), events.signal);
     main.querySelectorAll(".shelf").forEach(shelf => bindShelf(shelf, events.signal));
     disposePage = () => events.abort();
   } else if (page === "kham-pha") main.innerHTML = catalogPage(params);
@@ -1076,8 +1074,8 @@ function render({ focus = false, scroll = true } = {}) {
   else if (page === "xem" && film) {
     const number = Number(state.episode);
     episode = Number.isInteger(number) ? Math.min(film.episodeCount, Math.max(1, number)) : 1;
-    main.innerHTML = film.media ? playerPage(film, episode) : officialWatchPage(film, episode);
-    if (film.media) disposePage = bindPlayer(main.querySelector("[data-player]"), film, episode);
+    main.innerHTML = playerPage(film, episode);
+    disposePage = bindPlayer(main.querySelector("[data-player]"), film, episode);
   } else if (page === "dang-nhap" || page === "dang-ky") main.innerHTML = authPage(page);
   else if (page === "otp") {
     main.innerHTML = otpPage();
@@ -1195,6 +1193,17 @@ document.addEventListener("focusin", event => {
 
 document.addEventListener("change", event => {
   const element = event.target;
+  if (element.id === "episode-part") {
+    const state = route();
+    const film = filmById[state.id];
+    const part = Number(element.value);
+    if (film?.parts[part]) {
+      const current = state.page === "xem" ? Number(main.querySelector("[data-player]").dataset.player) : null;
+      element.closest(".episode-section").outerHTML = episodeList(film, current, part);
+      document.getElementById("episode-part").focus({ preventScroll: true });
+    }
+    return;
+  }
   if (element.form?.id === "filter-form") {
     const id = element.name;
     go(catalogUrl(Object.fromEntries(new FormData(element.form))));
@@ -1277,16 +1286,11 @@ document.addEventListener("click", event => {
     const step = action === "hero-next" ? 1 : -1;
     heroIndex = action === "hero-select" ? Number(button.dataset.index) : (heroIndex + step + featured.length) % featured.length;
     const section = main.querySelector("#hero");
-    section.innerHTML = hero();
-    const focusSelector = action === "hero-select" ? `[data-index="${heroIndex}"]` : `[data-action="${action}"]`;
-    section.querySelector(focusSelector)?.focus({ preventScroll: true });
+    section.querySelector(".hero-art").style.cssText = heroArtStyle(featured[heroIndex]);
+    section.querySelectorAll(".hero-copy").forEach((slide, index) => { slide.inert = index !== heroIndex; });
+    section.querySelectorAll('[data-action="hero-select"]').forEach((dot, index) => dot.setAttribute("aria-pressed", String(index === heroIndex)));
+    button.focus({ preventScroll: true });
   } else if (action === "trailer") openTrailer(filmById[button.dataset.film], button);
-  else if (action === "source-watch") {
-    const { film: id } = button.dataset;
-    const episode = Number(button.dataset.episode);
-    const records = watchHistory().filter(item => item.id !== id || item.episode !== episode);
-    write(accountKey("history"), [{ id, episode, progress: null, viewed: now() }, ...records].slice(0, 100));
-  }
   else if (action === "follow") toggleFollow(filmById[button.dataset.film], button);
   else if (action === "password") {
     const field = document.getElementById(button.getAttribute("aria-controls"));

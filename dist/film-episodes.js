@@ -52,3 +52,8 @@ const seriesEpisodes = {
     ["Tàn cuộc",68],
   ],
 };
+
+// Netflix released this limited series in four volumes of four episodes each.
+const seriesVolumes = {
+  "khi-cuoc-doi-cho-ban-qua-quyt": [4, 4, 4, 4],
+};

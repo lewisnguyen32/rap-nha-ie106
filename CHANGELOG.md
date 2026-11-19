@@ -22,4 +22,19 @@ Top 10 đánh số theo độ mới của phim và giữ thứ hạng khi bấm 
 
 Nhóm cho các hàng phim cuộn vòng theo hai hướng để người dùng tiếp tục duyệt khi tới cuối danh sách. Mỗi lần bấm mũi tên đi hai thẻ, tăng tốc khi bắt đầu và chậm dần trước khi dừng. Người dùng vẫn có thể vuốt trên màn hình cảm ứng (`e08c32a`). Thao tác qua điểm nối đã được kiểm tra trên hàng **Top 10 phim gần đây** và **Phim Hàn Quốc**. Nhịp hai thẻ vẫn cần đánh giá thêm trên màn hình hẹp.
 
+## Mô phỏng trình phát cho toàn bộ danh mục
+
+Mỗi phim và tập hiện có ảnh tĩnh và thanh tiến độ riêng. Trang xem xử lý phát, tạm dừng, tua, âm lượng mô phỏng, toàn màn hình, chuyển tập và lưu vị trí xem. Các nút xem ở nền tảng ngoài được thay bằng trang xem Rạp Nhà. Trailer tiếp tục mở riêng trong hộp thoại YouTube.
+
+| Phim bộ | Phần và số tập | Nguồn đối chiếu |
+| --- | --- | --- |
+| Tết ở Làng Địa Ngục | Một phần, 12 tập | [K+](https://www.youtube.com/watch?v=Vmr1KahUXRk) |
+| Tiệm Ăn Của Quỷ | Một phần, 6 tập | [Netflix](https://www.netflix.com/vn/title/81751769) |
+| Khi Cuộc Đời Cho Bạn Quả Quýt | 16 tập, bốn đợt phát hành, bốn tập mỗi đợt | [Netflix Tudum](https://www.netflix.com/tudum/articles/when-life-gives-you-tangerines-release-date-news) |
+| Gambit Hậu | Một phần, 7 tập | [Netflix](https://www.netflix.com/title/80234304?source=35) |
+
+## Nâng ảnh trong trình phát lên Full HD
+
+Mỗi phim lẻ và mỗi tập phim bộ có một ảnh WebP 1920 × 1080 dành riêng cho màn hình xem. Ảnh gốc khung điện ảnh được giữ tỷ lệ và đặt trong khung Full HD. Các thẻ danh sách tiếp tục dùng ảnh thu nhỏ để tải nhanh.
+
 Xem các luồng trình diễn trong [README](README.md) và các điểm còn mở trong [giới hạn bản demo](DEMO_LIMITATIONS.md).
