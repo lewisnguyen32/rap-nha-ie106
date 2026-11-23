@@ -69,6 +69,7 @@ let suggestions = [];
 let disposePage = () => {};
 let trailerTrigger;
 let toastTimer;
+let genreHoverTimer;
 
 const bi = (vi, en) => settings.language === "en" ? en : vi;
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => (
@@ -149,7 +150,6 @@ const accountLinks = () => [
   ["cai-dat", "settings", bi("Cài đặt", "Settings")],
 ];
 const avatar = (className = "") => `<span class="avatar ${className}" aria-hidden="true">${user ? escapeHtml(initials(user.name)) : icon("user", 17)}</span>`;
-const languageName = "Ngôn ngữ / Language";
 
 function notify(message) {
   window.clearTimeout(toastTimer);
@@ -178,7 +178,8 @@ function catalogUrl(values = {}) {
   return `#/kham-pha${params.size ? `?${params}` : ""}`;
 }
 
-function shell(state) {
+function shell(state, animateLanguage) {
+  clearTimeout(genreHoverTimer);
   const type = state.params.get("type");
   const nav = [
     ["#/", bi("Trang chủ", "Home"), !state.page],
@@ -186,6 +187,7 @@ function shell(state) {
     [catalogUrl({ type: "series" }), bi("Phim bộ", "Series"), state.page === "kham-pha" && type === "series"],
   ];
   const currentQuery = state.params.get("q") ?? "";
+  const languageToggleLabel = bi("VI | EN. Đổi từ tiếng Việt sang tiếng Anh", "VI | EN. Switch from English to Vietnamese");
   header.innerHTML = `<div class="header-inner frame">
     ${brand()}
     <nav class="main-nav" aria-label="${bi("Điều hướng chính", "Main navigation")}">
@@ -201,10 +203,11 @@ function shell(state) {
       <div class="popover suggestions" id="suggestions" role="listbox" aria-label="${bi("Gợi ý phim", "Film suggestions")}" hidden></div>
     </form>
     <div class="header-actions">
-      <div class="lang-switch" role="group" aria-label="${languageName}">
-        <button type="button" class="lang-switch-btn${settings.language === "vi" ? " is-active" : ""}" data-action="set-language" data-lang="vi" aria-pressed="${settings.language === "vi"}" lang="vi" title="Tiếng Việt">VI</button>
-        <button type="button" class="lang-switch-btn${settings.language === "en" ? " is-active" : ""}" data-action="set-language" data-lang="en" aria-pressed="${settings.language === "en"}" lang="en" title="English">EN</button>
-      </div>
+      <button type="button" class="lang-switch${animateLanguage ? " is-sliding" : ""}" data-action="toggle-language" data-language="${bi("vi", "en")}" aria-label="${languageToggleLabel}">
+        <span class="lang-switch-label${bi(" is-active", "")}" aria-hidden="true">VI</span>
+        <span class="lang-switch-divider" aria-hidden="true"></span>
+        <span class="lang-switch-label${bi("", " is-active")}" aria-hidden="true">EN</span>
+      </button>
       <div class="account-wrap">${user
       ? `<button type="button" class="avatar-button" data-action="avatar" aria-expanded="false" aria-controls="avatar-menu" aria-label="${bi("Menu tài khoản", "Account menu")}">${avatar()}${icon("down", 14)}</button>
           <div id="avatar-menu" class="popover avatar-menu" hidden>
@@ -215,6 +218,7 @@ function shell(state) {
       : `<a class="login-link" href="#/dang-nhap" aria-label="${bi("Đăng nhập", "Sign in")}">${icon("user", 17)}<span>${bi("Đăng nhập", "Sign in")}</span></a>`}</div>
     </div>
   </div>`;
+  bindGenreMenu();
   footer.innerHTML = `<div class="frame footer-content"><div>${brand()}<p>© 2026 Rạp Nhà · ${bi("Đồ án IE106", "IE106 course project")}</p></div>
     <nav aria-label="${bi("Hỗ trợ", "Support")}"><a href="#/gioi-thieu">${bi("Giới thiệu", "About")}</a><a href="#/gioi-thieu/lien-he">${bi("Liên hệ", "Contact")}</a><a href="#/huong-dan">${bi("Hướng dẫn sử dụng", "User guide")}</a><a href="#/faq">${bi("Câu hỏi thường gặp", "FAQ")}</a><a href="#/dieu-khoan">${bi("Điều khoản", "Terms")}</a></nav>
   </div>`;
@@ -235,7 +239,7 @@ function applyLanguage(lang, focusSelector = "") {
   const checkedNames = form ? [...form.querySelectorAll('input[type="checkbox"]')].filter(c => c.checked).map(c => c.name) : [];
   const reviewRating = form?.id === "review-form" ? form.dataset.rating : null;
   if (main.querySelector(".player.is-playing")) autoplayRoute = location.hash;
-  render({ scroll: false });
+  render({ scroll: false, animateLanguage: true });
   if (values) {
     const replacement = document.getElementById(form.id);
     if (replacement) {
@@ -264,6 +268,7 @@ function matches(query, film) {
 }
 
 function hidePopovers(except) {
+  clearTimeout(genreHoverTimer);
   for (const [id, action] of [["avatar-menu", "avatar"], ["genre-menu", "genres"], ["suggestions", null]]) {
     const popover = document.getElementById(id);
     if (!popover || id === except) continue;
@@ -276,6 +281,31 @@ function hidePopovers(except) {
       activeSearch = -1;
     }
   }
+}
+
+function setHeaderPopover(button, open) {
+  const panel = document.getElementById(button.getAttribute("aria-controls"));
+  if (open) hidePopovers(panel.id);
+  panel.hidden = !open;
+  button.setAttribute("aria-expanded", String(open));
+}
+
+function bindGenreMenu() {
+  const wrap = header.querySelector(".genre-wrap");
+  const button = wrap.querySelector("button");
+  wrap.addEventListener("pointerenter", event => {
+    if (event.pointerType === "mouse" && button.getAttribute("aria-expanded") === "false") {
+      genreHoverTimer = setTimeout(() => setHeaderPopover(button, true), 300);
+    }
+  });
+  wrap.addEventListener("pointerleave", event => {
+    if (event.pointerType !== "mouse") return;
+    clearTimeout(genreHoverTimer);
+    if (!wrap.querySelector(":focus-visible")) setHeaderPopover(button, false);
+  });
+  wrap.addEventListener("focusout", event => {
+    if (!wrap.contains(event.relatedTarget) && !wrap.matches(":hover")) setHeaderPopover(button, false);
+  });
 }
 
 function showSuggestions() {
@@ -480,10 +510,14 @@ function homePage() {
           ${row.params.collection === "top10" ? `<p class="shelf-caption">${rankingCriterion()}</p>` : ""}</div>
         <div class="shelf-tools"><a href="${escapeHtml(catalogUrl(row.params))}" aria-label="${bi("Xem tất cả", "View all")} · ${bi(row.title, row.english)}">${bi("Xem tất cả", "View all")} ${icon("arrow", 15)}</a></div>
       </div>
-      <div class="film-strip">${row.items.map(film => filmCard(film, {
-        badge: film.episodes ? episodeCount(film.episodeCount) : "",
-        rank: row.params.collection === "top10" ? recentRanks.get(film.id) : undefined,
-      })).join("")}</div>
+      <div class="shelf-track">
+        ${iconButton("left", bi("Cuộn sang trái", "Scroll left"), `data-action="shelf-prev" aria-controls="shelf-films-${index}"`)}
+        ${iconButton("right", bi("Cuộn sang phải", "Scroll right"), `data-action="shelf-next" aria-controls="shelf-films-${index}"`)}
+        <div class="film-strip" id="shelf-films-${index}">${row.items.map(film => filmCard(film, {
+          badge: film.episodes ? episodeCount(film.episodeCount) : "",
+          rank: row.params.collection === "top10" ? recentRanks.get(film.id) : undefined,
+        })).join("")}</div>
+      </div>
     </section>`).join("")}</div>`;
 }
 
@@ -1840,7 +1874,7 @@ function guidePage() {
     {
       glyph: "play",
       title: bi("5. Dùng trình phát & đổi ngôn ngữ", "5. Use the player & switch language"),
-      body: bi("Trong trình phát, dùng nút Phát/Tạm dừng, tua lùi hoặc tới 10 giây (hoặc phím ← / →), chuyển tập ở phim bộ và tùy chỉnh phụ đề/chất lượng. Gạt nút VI | EN trên thanh đầu trang bất kỳ lúc nào để chuyển ngữ ngay lập tức.", "Inside the player, use Play/Pause, skip back/forward 10 seconds (or ← / → keys), switch series episodes, and adjust subtitles or quality. Toggle the VI | EN switch in the header anytime to switch languages instantly."),
+      body: bi("Trong trình phát, dùng nút Phát/Tạm dừng, tua lùi hoặc tới 10 giây (hoặc phím ← / →), chuyển tập ở phim bộ và tùy chỉnh phụ đề/chất lượng. Bấm nút VI | EN trên thanh đầu trang để chuyển sang ngôn ngữ còn lại.", "Inside the player, use Play/Pause, skip back/forward 10 seconds (or ← / → keys), switch series episodes, and adjust subtitles or quality. Press the VI | EN button in the header to switch languages."),
       href: "#/phim/khi-cuoc-doi-cho-ban-qua-quyt",
       cta: bi("Xem thử phim bộ", "Try a series page"),
     },
@@ -1886,8 +1920,8 @@ function bindShelf(shelf, signal) {
   const previous = shelf.querySelector("[data-action=shelf-prev]");
   const next = shelf.querySelector("[data-action=shelf-next]");
   if (cards.length < 2) {
-    if (previous) previous.disabled = true;
-    if (next) next.disabled = true;
+    previous.hidden = true;
+    next.hidden = true;
     return;
   }
 
@@ -1900,6 +1934,7 @@ function bindShelf(shelf, signal) {
     return copy;
   });
   const leading = copyCards();
+  const poster = cards[0].querySelector(".poster");
   strip.prepend(...leading);
   // Leave room to advance two cards across the seam when the whole row fits.
   strip.append(...copyCards(), ...copyCards(cards.slice(0, step)));
@@ -1927,6 +1962,7 @@ function bindShelf(shelf, signal) {
     stopAnimation();
     cardWidth = nextCardWidth;
     visibleWidth = width;
+    shelf.style.setProperty("--poster-center", `${poster.getBoundingClientRect().height / 2}px`);
     if (target !== null) activeIndex = wrap(target);
     target = null;
     strip.scrollTo({ left: (cards.length + activeIndex) * cardWidth, behavior: "instant" });
@@ -1948,6 +1984,7 @@ function bindShelf(shelf, signal) {
   }
 
   function move(direction) {
+    closeFilmPreview();
     const offset = direction * step;
     let index = (target ?? Math.round(strip.scrollLeft / cardWidth)) + offset;
     const last = Math.floor((strip.scrollWidth - strip.clientWidth + 1) / cardWidth);
@@ -1983,8 +2020,8 @@ function bindShelf(shelf, signal) {
   }
 
   measure();
-  previous?.addEventListener("click", () => move(-1), { signal });
-  next?.addEventListener("click", () => move(1), { signal });
+  previous.addEventListener("click", () => move(-1), { signal });
+  next.addEventListener("click", () => move(1), { signal });
   strip.addEventListener("scroll", () => {
     if (animation) return;
     clearTimeout(settleTimer);
@@ -2005,7 +2042,7 @@ function bindShelf(shelf, signal) {
   }, { once: true });
 }
 
-function render({ focus = false, scroll = true } = {}) {
+function render({ focus = false, scroll = true, animateLanguage = false } = {}) {
   closeFilmPreview();
   const state = route();
   const { page, id, params } = state;
@@ -2028,7 +2065,7 @@ function render({ focus = false, scroll = true } = {}) {
   disposePage = () => {};
   document.documentElement.lang = settings.language;
   document.querySelector(".skip-link").textContent = bi("Đến nội dung chính", "Skip to content");
-  shell(state);
+  shell(state, animateLanguage);
   let episode;
   if (!page) {
     main.innerHTML = homePage();
@@ -2270,9 +2307,10 @@ document.addEventListener("keydown", event => {
     input.focus();
   } else if (event.key === "Escape") {
     const expanded = header.querySelector("button[aria-expanded=true]");
+    const restoreFocus = expanded?.parentElement.contains(document.activeElement);
     closeFilmPreview();
     hidePopovers();
-    expanded?.focus();
+    if (restoreFocus) expanded.focus();
   } else if (event.target === input && ["ArrowDown", "ArrowUp"].includes(event.key) && input.value.trim()) {
     event.preventDefault();
     if (input.getAttribute("aria-expanded") === "false") showSuggestions();
@@ -2306,16 +2344,9 @@ document.addEventListener("click", event => {
     return;
   }
   if (action === "avatar" || action === "genres") {
-    const panel = document.getElementById(button.getAttribute("aria-controls"));
-    const open = panel.hidden;
-    hidePopovers();
-    panel.hidden = !open;
-    button.setAttribute("aria-expanded", String(open));
-  } else if (action === "set-language") {
-    const lang = button.dataset.lang;
-    if (lang && lang !== settings.language) {
-      applyLanguage(lang, `[data-action="set-language"][data-lang="${lang}"]`);
-    }
+    setHeaderPopover(button, button.getAttribute("aria-expanded") === "false");
+  } else if (action === "toggle-language") {
+    applyLanguage(bi("en", "vi"), '[data-action="toggle-language"]');
   } else if (action === "rate-star") {
     const form = button.closest("#review-form");
     if (form) setReviewRating(form, button.dataset.value);

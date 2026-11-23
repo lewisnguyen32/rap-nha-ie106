@@ -20,6 +20,11 @@ Lịch sử chỉnh sửa
 12. Thêm ô xem nhanh trên desktop. Rê chuột hoặc dùng Tab đến thẻ phim để xem tóm tắt, thể loại, năm phát hành, thời lượng hoặc số tập và điểm đánh giá nếu có.
 13. Thêm hai nút tua lùi và tới 10 giây. Có thể dùng nút hoặc phím **← / →** khi đang phát và khi tạm dừng. Menu cài đặt có phụ đề, chất lượng và thuyết minh mẫu.
 14. Dùng một biểu tượng quả địa cầu cạnh nút tài khoản để đổi ngôn ngữ, sửa biểu tượng Cài đặt và thêm mục đổi mật khẩu sau khi đăng nhập. Đổi tên tài khoản mẫu thành **Minh Quân**.
+15. Thu gọn nút **VI | EN**, bo góc và thêm viền mảnh. Bấm ở bất kỳ đâu trên nút để chuyển sang ngôn ngữ còn lại. Nền đỏ trầm trượt sang ngôn ngữ đang dùng và lựa chọn được đồng bộ với **Cài đặt**.
+16. Cho menu **Thể loại** tự mở sau khi giữ chuột trên nút 0,3 giây. Mũi tên nhích xuống khi rê chuột, xoay lên khi menu mở và danh sách trượt nhẹ. Bấm nút hoặc dùng bàn phím để mở ngay.
+17. Đặt nút mũi tên tròn ở mép trái và phải của cả sáu hàng phim trên trang chủ, căn giữa theo chiều cao poster. Mỗi lần bấm cuộn hai phim và có thể cuộn vòng theo cả hai chiều.
+18. Bỏ gạch chân khi rê chuột lên **Xem tất cả**. Chữ sáng nhẹ để báo liên kết đang được trỏ tới.
+19. Cho menu avatar co theo tên và email để giảm khoảng trống bên phải. Menu chỉ mở khi kích hoạt nút, trượt nhẹ khi mở và đóng ngay. Nút **Đăng xuất** có nền đỏ trầm khi rê chuột hoặc chọn bằng bàn phím.
 
 Xem lý do, kết quả và gợi ý minh họa cho từng mốc trong [lịch sử chỉnh sửa chi tiết](CHANGELOG.md).
 ## Giới hạn bản demo
@@ -50,7 +55,7 @@ Trên trang chủ, **Top 10 phim gần đây** xếp theo ngày phát hành tạ
 3. Mở **Khi Cuộc Đời Cho Bạn Quả Quýt**, chọn Phần 4 rồi thử mở Tập 13. Nút **Trailer** mở video YouTube.
 4. Mở **Đăng nhập**, bấm **Dùng tài khoản mẫu** (hoặc nhập email `minhquan@example.com`, mật khẩu `rapnha123`) để xem danh sách theo dõi và lịch sử của **Minh Quân**. Có thể đăng ký tài khoản mới, đồng ý điều khoản và xác nhận bằng 6 ô mã OTP `123456`.
 5. Chọn **Đăng nhập → Quên mật khẩu? → Dùng email mẫu → Lấy mã xác nhận**. Dùng OTP `000000` để mở hộp thoại thất bại, rồi nhập `123456` và đặt mật khẩu mới để mở hộp thoại thành công. Mở đường dẫn `#/dang-tai` trên website để xem riêng màn hình Đang tải.
-6. Gạt nút **VI | EN** ở thanh đầu trang (hoặc đổi trong **Cài đặt**) để chuyển giữa **Tiếng Việt** và **English**. Sau khi đăng nhập, vào **Cài đặt → Đổi mật khẩu** (mật khẩu mặc định `rapnha123` nếu chưa đổi).
+6. Bấm bất kỳ vị trí nào trên nút **VI | EN** ở đầu trang để chuyển sang ngôn ngữ còn lại. Bạn cũng có thể chọn ngôn ngữ trong **Cài đặt**. Sau khi đăng nhập, vào **Cài đặt → Đổi mật khẩu** (mật khẩu mặc định `rapnha123` nếu chưa đổi).
 
 ## Nguồn phim và hình ảnh
 
