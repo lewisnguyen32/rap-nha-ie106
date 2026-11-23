@@ -6,9 +6,18 @@ const footer = document.querySelector("#site-footer");
 const trailer = document.querySelector("#trailer-dialog");
 const resultDialog = document.querySelector("#result-dialog");
 const toast = document.querySelector("#toast");
+const backToTop = document.querySelector("#back-to-top");
 const prefix = "rap-nha.v1.";
-const defaults = { language: "vi", autoplay: true };
+const defaults = {
+  language: "vi",
+  autoplay: true,
+  defaultQuality: "auto",
+  defaultCaptions: "vi",
+  notifyNewEpisode: true,
+  notifyWeekendPicks: false,
+};
 const demoOtp = "123456";
+const demoPassword = "rapnha123";
 const legacyDemoEmail = "minhan@example.com";
 
 function read(key, fallback) {
@@ -72,6 +81,7 @@ const now = () => new Date().toISOString();
 const prettyDate = date => new Date(date).toLocaleDateString(settings.language === "en" ? "en-GB" : "vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 const typeOf = film => film.episodeCount > 1 ? bi("Phim bộ", "Series") : bi("Phim lẻ", "Movies");
 const episodeLabel = number => bi(`Tập ${number}`, `Episode ${number}`);
+const episodeProgressLabel = (number, total) => bi(`Tập ${number} / ${total}`, `Episode ${number} / ${total}`);
 const episodeTitle = (film, number) => film.episodes?.[number - 1]?.[0] ?? (film.episodeCount === 1 ? film.title : episodeLabel(number));
 const episodeMinutes = (film, number) => film.episodes?.[number - 1]?.[1] ?? film.minutes;
 const episodeImageName = (film, number) => `${film.id}-e${String(number).padStart(2, "0")}`;
@@ -124,6 +134,10 @@ const symbols = {
   captions: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 10a2.5 2.5 0 1 0 0 4m7-4a2.5 2.5 0 1 0 0 4"/>',
   fullscreen: '<path d="M4 9V4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 3v7m4-7v7"/>',
+  up: '<path d="M12 19V5m-6 6 6-6 6 6"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  book: '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>',
 };
 const icon = (name, size = 20) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${symbols[name] ?? ""}</svg>`;
 const iconButton = (name, label, attrs = "") => `<button type="button" class="icon-button" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" ${attrs}>${icon(name)}</button>`;
@@ -171,6 +185,7 @@ function shell(state) {
     [catalogUrl({ type: "movie" }), bi("Phim lẻ", "Movies"), state.page === "kham-pha" && type === "movie"],
     [catalogUrl({ type: "series" }), bi("Phim bộ", "Series"), state.page === "kham-pha" && type === "series"],
   ];
+  const currentQuery = state.params.get("q") ?? "";
   header.innerHTML = `<div class="header-inner frame">
     ${brand()}
     <nav class="main-nav" aria-label="${bi("Điều hướng chính", "Main navigation")}">
@@ -180,26 +195,15 @@ function shell(state) {
     </nav>
     <form class="search-form" role="search" id="search-form" autocomplete="off">
       <div class="search-field">${icon("search", 18)}
-        <input type="search" id="search-input" name="q" maxlength="100" enterkeyhint="search" placeholder="${bi("Tìm tên phim…", "Find a title…")}" aria-label="${bi("Tìm kiếm phim", "Search films")}" role="combobox" aria-controls="suggestions" aria-autocomplete="list" aria-expanded="false" value="${escapeHtml(state.params.get("q") ?? "")}">
-        <button class="search-clear" type="button" data-action="clear-search" aria-label="${bi("Xóa từ khóa", "Clear search")}" hidden>${icon("x", 16)}</button>
-        <kbd aria-hidden="true">/</kbd>
+        <input type="search" id="search-input" name="q" maxlength="100" enterkeyhint="search" placeholder="${bi("Tìm tên phim…", "Find a title…")}" aria-label="${bi("Tìm kiếm phim", "Search films")}" role="combobox" aria-controls="suggestions" aria-autocomplete="list" aria-expanded="false" value="${escapeHtml(currentQuery)}">
+        <button class="search-clear" type="button" data-action="clear-search" aria-label="${bi("Xóa từ khóa", "Clear search")}" ${currentQuery ? "" : "hidden"}>${icon("x", 16)}</button>
       </div>
       <div class="popover suggestions" id="suggestions" role="listbox" aria-label="${bi("Gợi ý phim", "Film suggestions")}" hidden></div>
     </form>
     <div class="header-actions">
-      <div class="language-wrap">
-        <button class="language-toggle" type="button" data-action="language" aria-label="${languageName}" title="${languageName}" aria-expanded="false" aria-controls="language-menu">
-          ${icon("globe", 18)}
-        </button>
-        <div id="language-menu" class="popover language-menu" hidden>
-          <p id="language-menu-label" class="language-menu-label"><span lang="vi">Ngôn ngữ</span> / <span lang="en">Language</span></p>
-          <div class="language-options" role="radiogroup" aria-labelledby="language-menu-label">
-            ${[["vi", "Tiếng Việt"], ["en", "English"]].map(([value, label]) => `<label class="language-option">
-              <input type="radio" name="header-language" id="header-language-${value}" value="${value}" data-pref="language" ${settings.language === value ? "checked" : ""}>
-              <span lang="${value}">${label}</span>
-            </label>`).join("")}
-          </div>
-        </div>
+      <div class="lang-switch" role="group" aria-label="${languageName}">
+        <button type="button" class="lang-switch-btn${settings.language === "vi" ? " is-active" : ""}" data-action="set-language" data-lang="vi" aria-pressed="${settings.language === "vi"}" lang="vi" title="Tiếng Việt">VI</button>
+        <button type="button" class="lang-switch-btn${settings.language === "en" ? " is-active" : ""}" data-action="set-language" data-lang="en" aria-pressed="${settings.language === "en"}" lang="en" title="English">EN</button>
       </div>
       <div class="account-wrap">${user
       ? `<button type="button" class="avatar-button" data-action="avatar" aria-expanded="false" aria-controls="avatar-menu" aria-label="${bi("Menu tài khoản", "Account menu")}">${avatar()}${icon("down", 14)}</button>
@@ -212,8 +216,43 @@ function shell(state) {
     </div>
   </div>`;
   footer.innerHTML = `<div class="frame footer-content"><div>${brand()}<p>© 2026 Rạp Nhà · ${bi("Đồ án IE106", "IE106 course project")}</p></div>
-    <nav aria-label="${bi("Hỗ trợ", "Support")}"><a href="#/gioi-thieu">${bi("Giới thiệu", "About")}</a><a href="#/gioi-thieu/lien-he">${bi("Liên hệ", "Contact")}</a><a href="#/faq">${bi("Câu hỏi thường gặp", "FAQ")}</a><a href="#/dieu-khoan">${bi("Điều khoản", "Terms")}</a></nav>
+    <nav aria-label="${bi("Hỗ trợ", "Support")}"><a href="#/gioi-thieu">${bi("Giới thiệu", "About")}</a><a href="#/gioi-thieu/lien-he">${bi("Liên hệ", "Contact")}</a><a href="#/huong-dan">${bi("Hướng dẫn sử dụng", "User guide")}</a><a href="#/faq">${bi("Câu hỏi thường gặp", "FAQ")}</a><a href="#/dieu-khoan">${bi("Điều khoản", "Terms")}</a></nav>
   </div>`;
+  if (backToTop) {
+    const label = bi("Lên đầu trang", "Back to top");
+    backToTop.setAttribute("aria-label", label);
+    backToTop.title = label;
+    backToTop.innerHTML = icon("up", 20);
+  }
+}
+
+function applyLanguage(lang, focusSelector = "") {
+  if (!lang || (lang !== "vi" && lang !== "en")) return;
+  settings.language = lang;
+  write("settings", settings);
+  const form = main.querySelector("#auth-form, #recovery-form, #reset-password-form, #otp-form, #change-password-form, #contact-form, #review-form");
+  const values = form && new FormData(form);
+  const checkedNames = form ? [...form.querySelectorAll('input[type="checkbox"]')].filter(c => c.checked).map(c => c.name) : [];
+  const reviewRating = form?.id === "review-form" ? form.dataset.rating : null;
+  if (main.querySelector(".player.is-playing")) autoplayRoute = location.hash;
+  render({ scroll: false });
+  if (values) {
+    const replacement = document.getElementById(form.id);
+    if (replacement) {
+      for (const [name, value] of values) {
+        const input = replacement.elements.namedItem(name);
+        if (input instanceof HTMLInputElement && input.type !== "checkbox" && input.type !== "radio") input.value = value;
+        else if (input instanceof HTMLTextAreaElement) input.value = value;
+      }
+      for (const name of checkedNames) {
+        const box = replacement.elements.namedItem(name);
+        if (box instanceof HTMLInputElement && box.type === "checkbox") box.checked = true;
+      }
+      if (reviewRating) setReviewRating(replacement, Number(reviewRating));
+    }
+  }
+  if (focusSelector) document.querySelector(focusSelector)?.focus({ preventScroll: true });
+  notify(bi("Đã chuyển sang Tiếng Việt.", "Switched to English."));
 }
 
 function matches(query, film) {
@@ -225,7 +264,7 @@ function matches(query, film) {
 }
 
 function hidePopovers(except) {
-  for (const [id, action] of [["avatar-menu", "avatar"], ["language-menu", "language"], ["genre-menu", "genres"], ["suggestions", null]]) {
+  for (const [id, action] of [["avatar-menu", "avatar"], ["genre-menu", "genres"], ["suggestions", null]]) {
     const popover = document.getElementById(id);
     if (!popover || id === except) continue;
     popover.hidden = true;
@@ -439,8 +478,7 @@ function homePage() {
       <div class="shelf-head">
         <div><h2 id="shelf-title-${index}">${bi(row.title, row.english)}</h2>
           ${row.params.collection === "top10" ? `<p class="shelf-caption">${rankingCriterion()}</p>` : ""}</div>
-        <div class="shelf-tools"><a href="${escapeHtml(catalogUrl(row.params))}" aria-label="${bi("Xem tất cả", "View all")} · ${bi(row.title, row.english)}">${bi("Xem tất cả", "View all")} ${icon("arrow", 15)}</a>
-        <div class="shelf-arrows">${iconButton("left", bi("Cuộn sang trái", "Scroll left"), 'data-action="shelf-prev"')}${iconButton("right", bi("Cuộn sang phải", "Scroll right"), 'data-action="shelf-next"')}</div></div>
+        <div class="shelf-tools"><a href="${escapeHtml(catalogUrl(row.params))}" aria-label="${bi("Xem tất cả", "View all")} · ${bi(row.title, row.english)}">${bi("Xem tất cả", "View all")} ${icon("arrow", 15)}</a></div>
       </div>
       <div class="film-strip">${row.items.map(film => filmCard(film, {
         badge: film.episodes ? episodeCount(film.episodeCount) : "",
@@ -461,12 +499,20 @@ function emptyState(glyph, title, subtitle, href, label) {
   return `<div class="empty-state"><span class="empty-icon">${icon(glyph, 27)}</span><h2>${title}</h2><p>${subtitle}</p>${href ? `<a class="button secondary" href="${escapeHtml(href)}">${label} ${icon("arrow", 16)}</a>` : ""}</div>`;
 }
 
+const fixedCollectionCountries = { vietnam: "Việt Nam", korea: "Hàn Quốc" };
+
 function catalogPage(params) {
   const keys = ["q", "type", "genre", "year", "country", "score", "sort", "collection"];
   const filter = Object.fromEntries(keys.map(key => [key, params.get(key) ?? ""]));
-  const { q, type, genre, year, country, score, sort, collection } = filter;
+  const { q, type, genre, year, score, sort, collection } = filter;
+  const fixedCountry = fixedCollectionCountries[collection] ?? "";
+  const country = fixedCountry || filter.country;
+  const effectiveFilter = { ...filter, country: fixedCountry ? "" : filter.country };
   const ranked = collection === "top10";
-  const candidates = ranked ? recentTop : collection === "theatrical" ? theatricalFilms : films;
+  const candidates = ranked ? recentTop
+    : collection === "theatrical" ? theatricalFilms
+      : fixedCountry ? newest.filter(film => film.country === fixedCountry)
+        : films;
   const results = candidates.filter(film => (
     (!q || matches(q, film)) &&
     (!type || (film.episodeCount > 1 ? "series" : "movie") === type) &&
@@ -474,17 +520,27 @@ function catalogPage(params) {
     (!year || String(film.year) === year) &&
     (!country || film.country === country) &&
     (!score || (film.score != null && film.score >= Number(score))) &&
-    (sort !== "score" || film.score != null) &&
-    (sort !== "picks" || selections.includes(film.id))
+    (q || sort !== "picks" || selections.includes(film.id))
   ));
-  if (sort === "score") results.sort((a, b) => b.score - a.score);
-  else if (sort === "new") results.sort(compareRelease);
-  else if (sort === "picks") results.sort((a, b) => selections.indexOf(a.id) - selections.indexOf(b.id));
-  else if (q) results.sort((a, b) => Number(normalize(b.title).startsWith(normalize(q))) - Number(normalize(a.title).startsWith(normalize(q))));
+  if (sort === "score") {
+    results.sort((a, b) => {
+      const aHas = a.score != null;
+      const bHas = b.score != null;
+      if (aHas !== bHas) return bHas - aHas;
+      if (aHas && bHas && b.score !== a.score) return b.score - a.score;
+      return compareRelease(a, b);
+    });
+  } else if (sort === "new") results.sort(compareRelease);
+  else if (sort === "picks") {
+    results.sort((a, b) => {
+      const ai = selections.indexOf(a.id);
+      const biIdx = selections.indexOf(b.id);
+      if ((ai >= 0) !== (biIdx >= 0)) return (biIdx >= 0) - (ai >= 0);
+      return ai >= 0 ? ai - biIdx : compareRelease(a, b);
+    });
+  } else if (q) results.sort((a, b) => Number(normalize(b.title).startsWith(normalize(q))) - Number(normalize(a.title).startsWith(normalize(q))));
 
-  const row = homeRows.find(({ params: rowParams }) => collection
-    ? rowParams.collection === collection
-    : country && rowParams.country === country);
+  const row = homeRows.find(({ params: rowParams }) => collection && rowParams.collection === collection);
   const categoryTitle = row && bi(row.title, row.english);
   const resultCount = bi(`${results.length} kết quả`, `${results.length} results`);
   const subtitle = ranked ? `${resultCount} · ${rankingCriterion()}` : resultCount;
@@ -500,7 +556,14 @@ function catalogPage(params) {
   const defaultSort = ranked ? bi("Theo thứ hạng", "Rank order")
     : collection === "theatrical" ? bi("Theo ngày phát hành", "Release date") : bi("Độ liên quan", "Relevance");
   const options = (list, label = item => item) => [["", all], ...list.map(item => [item, label(item)])];
-  const active = [["genre", genreLabel(genre)], ["year", year], ["country", countryLabel(country)], ["score", score && `≥ ${score} / 10`]].filter(([, value]) => value);
+  const typeText = type === "movie" ? bi("Phim lẻ", "Movies") : type === "series" ? bi("Phim bộ", "Series") : "";
+  const active = [
+    ["type", typeText && `${bi("Loại phim", "Type")}: ${typeText}`],
+    ["genre", genre && `${bi("Thể loại", "Genre")}: ${genreLabel(genre)}`],
+    ["year", year && `${bi("Năm", "Year")}: ${year}`],
+    ["country", !fixedCountry && country && `${bi("Quốc gia", "Country")}: ${countryLabel(country)}`],
+    ["score", score && `${bi("Điểm", "Rating")}: ≥ ${score} / 10`],
+  ].filter(([, value]) => value);
 
   return `<div class="frame inner-page">
     <div class="crumb"><a href="#/">${bi("Trang chủ", "Home")}</a>${icon("right", 14)}<span>${q ? bi("Tìm kiếm", "Search") : bi("Khám phá", "Discover")}</span></div>
@@ -512,12 +575,17 @@ function catalogPage(params) {
         ${selectField("type", bi("Loại phim", "Type"), [["", all], ["movie", bi("Phim lẻ", "Movies")], ["series", bi("Phim bộ", "Series")]], type)}
         ${selectField("genre", bi("Thể loại", "Genre"), options(genres, genreLabel), genre)}
         ${selectField("year", bi("Năm phát hành", "Release year"), options(years), year)}
-        ${selectField("country", bi("Quốc gia", "Country"), options(countries, countryLabel), country)}
+        ${fixedCountry
+          ? selectField("country", `${bi("Quốc gia", "Country")} · ${bi("Cố định", "Fixed")}`, [[fixedCountry, countryLabel(fixedCountry)]], fixedCountry, `disabled aria-disabled="true" title="${escapeHtml(bi("Cố định theo danh mục hiện tại", "Fixed for this category"))}"`)
+          : selectField("country", bi("Quốc gia", "Country"), options(countries, countryLabel), country)}
         ${selectField("score", bi("Điểm đánh giá", "Rating"), [["", all], ["7", "7+"], ["8", "8+"], ["8.5", "8.5+"]], score)}
         ${selectField("sort", bi("Sắp xếp", "Sort by"), [["", defaultSort], ["new", bi("Mới phát hành", "Recent releases")], ["score", bi("Điểm từ nhà phát hành", "Distributor ratings")], ["picks", bi("Rạp Nhà tuyển chọn", "Rạp Nhà picks")]], sort)}
       </form>
-      ${active.length ? `<div class="filter-tags">${active.map(([key, value]) => `<a class="chip" aria-label="${bi("Bỏ bộ lọc", "Remove filter")} ${escapeHtml(value)}" href="${escapeHtml(catalogUrl({ ...filter, [key]: "" }))}">${escapeHtml(value)} ${icon("x", 14)}</a>`).join("")}
-        <a class="filter-reset" href="${escapeHtml(catalogUrl({ q, type, sort, collection }))}">${bi("Xóa bộ lọc", "Clear filters")}</a></div>` : ""}
+      ${active.length ? `<div class="filter-tags" role="region" aria-label="${bi("Điều kiện đang lọc", "Active filters")}">
+        <span class="filter-tags-label">${bi("Đang lọc:", "Active:")}</span>
+        ${active.map(([key, value]) => `<a class="chip" aria-label="${bi("Bỏ bộ lọc", "Remove filter")} ${escapeHtml(value)}" href="${escapeHtml(catalogUrl({ ...effectiveFilter, [key]: "" }))}">${escapeHtml(value)} ${icon("x", 14)}</a>`).join("")}
+        <a class="filter-reset" href="${escapeHtml(catalogUrl({ q, sort, collection }))}">${bi("Xóa tất cả bộ lọc", "Clear all filters")}</a>
+      </div>` : ""}
     </section>
     ${results.length ? `<div class="film-grid">${results.map(film => filmCard(film, { rank: ranked ? recentRanks.get(film.id) : undefined })).join("")}</div>`
       : emptyState("search", bi("Chưa tìm thấy phim", "No films found"), bi("Thử một tên phim khác hoặc giảm số bộ lọc.", "Try another film title or fewer filters."), catalogUrl(), bi("Khám phá tất cả phim", "Browse all films"))}
@@ -555,13 +623,178 @@ function filmStats(film) {
   return `<dl class="film-stats">${entries.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("")}</dl>`;
 }
 
+const seedReviewsByFilm = {
+  "an-mang-karaoke": [
+    { id: "s1", author: "Hoàng Minh", rating: 5, date: "2026-11-16T19:20:00+07:00", vi: "Mạch điều tra dồn dập, bối cảnh núi rừng cô lập tạo không khí bí ẩn rất cuốn từ đầu đến cuối.", en: "Fast-paced mystery with an isolated mountain setting that keeps the suspense tight from start to finish." },
+    { id: "s2", author: "Thảo Vy", rating: 4, date: "2026-11-12T21:05:00+07:00", vi: "Dàn diễn viên tung hứng tự nhiên, nhiều cú ngoặt bất ngờ ở hồi cuối.", en: "Natural chemistry across the cast with clever twists in the final act." },
+  ],
+  "tet-o-lang-dia-nguc": [
+    { id: "s1", author: "Quốc Bảo", rating: 5, date: "2026-11-15T22:10:00+07:00", vi: "Không khí cổ trang kinh dị dân gian đậm chất Việt Nam, tạo hình và âm thanh cực kỳ ấn tượng.", en: "Rich Vietnamese folklore horror atmosphere with striking production design and sound." },
+    { id: "s2", author: "Lan Anh", rating: 5, date: "2026-11-10T20:40:00+07:00", vi: "Nhịp phim hấp dẫn qua từng tập, bám sát tinh thần tiểu thuyết gốc.", en: "Gripping pacing across every episode while staying faithful to the original novel." },
+  ],
+  "khi-cuoc-doi-cho-ban-qua-quyt": [
+    { id: "s1", author: "Ngọc Hân", rating: 5, date: "2026-11-18T21:15:00+07:00", vi: "Cảm động sâu sắc về gia đình và tình yêu qua nhiều thập kỷ, diễn xuất của IU và Park Bo-gum quá xuất sắc.", en: "Deeply moving story of family and love across decades, with standout performances from IU and Park Bo-gum." },
+    { id: "s2", author: "Đức Anh", rating: 5, date: "2026-11-14T18:30:00+07:00", vi: "Cảnh quay đảo Jeju đẹp như tranh, chia bốn phần xem rất dễ theo dõi.", en: "Gorgeous Jeju Island cinematography and the four-part structure makes it easy to follow." },
+  ],
+  "hai-phuong": [
+    { id: "s1", author: "Tuấn Kiệt", rating: 5, date: "2026-11-11T20:00:00+07:00", vi: "Các pha hành động võ thuật mãn nhãn, tiết tấu nhanh không có đoạn thừa.", en: "Thrilling martial arts choreography with relentless pacing and zero filler." },
+    { id: "s2", author: "Khánh Linh", rating: 4, date: "2026-11-08T19:45:00+07:00", vi: "Tình mẫu tử chạm cảm xúc, màu phim đặc trưng rất dễ nhận diện.", en: "Heartfelt mother-daughter bond paired with a memorable neon visual style." },
+  ],
+  "tham-tu-kien": [
+    { id: "s1", author: "Minh Trí", rating: 5, date: "2026-11-17T20:10:00+07:00", vi: "Bối cảnh triều Nguyễn được đầu tư công phu, kết hợp trinh thám và yếu tố kỳ bí rất mượt.", en: "Meticulously crafted Nguyen-dynasty setting blending detective work with eerie folklore." },
+    { id: "s2", author: "Phương Nhi", rating: 4, date: "2026-11-13T17:20:00+07:00", vi: "Hình ảnh điện ảnh đẹp mắt, nhân vật chính sắc sảo.", en: "Cinematic visuals and a sharp, compelling lead investigator." },
+  ],
+};
+
+function defaultSeedReviews(film) {
+  return seedReviewsByFilm[film.id] ?? [
+    {
+      id: "d1", author: "Gia Huy", rating: 5, date: "2026-11-15T20:00:00+07:00",
+      vi: `${film.title} có nhịp kể lôi cuốn, hình ảnh chỉn chu và rất đáng xem vào dịp cuối tuần.`,
+      en: `${film.title} offers engaging storytelling, polished visuals, and makes for a great weekend watch.`,
+    },
+    {
+      id: "d2", author: "Bích Ngọc", rating: 4, date: "2026-11-11T19:15:00+07:00",
+      vi: "Nội dung hấp dẫn, dàn diễn viên thể hiện tròn vai và giữ được cảm xúc đến phút cuối.",
+      en: "Compelling story with committed performances that hold the emotion through the finale.",
+    },
+  ];
+}
+
+function filmReviews(film) {
+  const userReviews = read(`reviews.${film.id}`, []);
+  const seeded = defaultSeedReviews(film).map(item => ({
+    ...item,
+    text: bi(item.vi, item.en),
+  }));
+  return [...userReviews, ...seeded];
+}
+
+function starIcons(rating, size = 14) {
+  return `<span class="star-row" aria-label="${bi(`${rating} trên 5 sao`, `${rating} out of 5 stars`)}">${Array.from({ length: 5 }, (_, index) =>
+    `<span class="star-glyph${index < rating ? " is-filled" : ""}">${icon("star", size)}</span>`
+  ).join("")}</span>`;
+}
+
+function reviewsSection(film) {
+  const list = filmReviews(film);
+  const average = list.length ? list.reduce((sum, item) => sum + item.rating, 0) / list.length : 0;
+  const rounded = Math.round(average);
+  const counts = [5, 4, 3, 2, 1].map(star => ({
+    star,
+    count: list.filter(item => item.rating === star).length,
+  }));
+  return `<section class="reviews-section" data-reviews-film="${escapeHtml(film.id)}" aria-labelledby="reviews-title">
+    <div class="section-head">
+      <div><h2 id="reviews-title">${icon("message", 21)} ${bi("Đánh giá & Bình luận", "Ratings & Reviews")}</h2>
+        <p>${bi(`${list.length} nhận xét từ người xem`, `${list.length} viewer reviews`)}</p></div>
+    </div>
+    <div class="reviews-grid">
+      <div class="panel reviews-summary">
+        <div class="reviews-score-box">
+          <strong>${scoreText(average)}</strong>
+          <div>
+            ${starIcons(rounded, 17)}
+            <span>${bi(`${list.length} lượt đánh giá`, `${list.length} ratings`)}</span>
+          </div>
+        </div>
+        <div class="reviews-bars">
+          ${counts.map(({ star, count }) => {
+            const pct = list.length ? Math.round((count / list.length) * 100) : 0;
+            return `<div class="reviews-bar-row"><span>${star} ${icon("star", 12)}</span><div class="reviews-bar-track"><span style="width:${pct}%"></span></div><small>${count}</small></div>`;
+          }).join("")}
+        </div>
+      </div>
+      <form id="review-form" class="panel review-form" data-film="${escapeHtml(film.id)}" data-rating="5">
+        <h3>${bi("Viết đánh giá của bạn", "Write your review")}</h3>
+        <div class="review-rating-row">
+          <span id="rating-picker-label">${bi("Chấm điểm:", "Your rating:")}</span>
+          <div class="rating-picker" role="radiogroup" aria-labelledby="rating-picker-label">
+            ${[1, 2, 3, 4, 5].map(star => `<button type="button" class="rate-star is-filled" data-action="rate-star" data-value="${star}" role="radio" aria-checked="${star === 5}" aria-label="${bi(`${star} sao`, `${star} stars`)}">${icon("star", 20)}</button>`).join("")}
+          </div>
+          <span class="rating-picker-value" data-rating-text>${bi("5 / 5 sao", "5 / 5 stars")}</span>
+        </div>
+        <div class="review-form-fields">
+          <div class="form-field">
+            <label for="review-author">${bi("Tên hiển thị", "Display name")}</label>
+            <input id="review-author" name="author" type="text" maxlength="45" value="${escapeHtml(user?.name ?? "")}" placeholder="${escapeHtml(bi("Nhập tên của bạn (tùy chọn)", "Enter your name (optional)"))}">
+          </div>
+          <div class="form-field">
+            <label for="review-comment">${bi("Nội dung bình luận", "Your comment")}</label>
+            <textarea id="review-comment" name="comment" rows="3" maxlength="500" placeholder="${escapeHtml(bi("Chia sẻ cảm nhận của bạn về bộ phim này…", "Share your thoughts about this title…"))}" required></textarea>
+          </div>
+        </div>
+        <p class="form-error" role="alert" hidden></p>
+        <div class="review-form-actions">
+          <button type="submit" class="button primary small">${bi("Gửi bình luận", "Post review")} ${icon("arrow", 15)}</button>
+        </div>
+      </form>
+    </div>
+    <div class="review-list">
+      ${list.map(item => `<article class="panel review-card">
+        <div class="review-card-head">
+          <span class="avatar" aria-hidden="true">${escapeHtml(initials(item.author || "RN"))}</span>
+          <div class="review-meta">
+            <strong>${escapeHtml(item.author)}</strong>
+            <small>${prettyDate(item.date)}</small>
+          </div>
+          <div class="review-stars">${starIcons(item.rating, 14)}</div>
+        </div>
+        <p class="review-body">${escapeHtml(item.text)}</p>
+      </article>`).join("")}
+    </div>
+  </section>`;
+}
+
+function setReviewRating(form, value) {
+  const rating = Math.min(5, Math.max(1, Number(value) || 5));
+  form.dataset.rating = String(rating);
+  form.querySelectorAll("[data-action=rate-star]").forEach(btn => {
+    const star = Number(btn.dataset.value);
+    btn.classList.toggle("is-filled", star <= rating);
+    btn.setAttribute("aria-checked", String(star === rating));
+  });
+  const label = form.querySelector("[data-rating-text]");
+  if (label) label.textContent = bi(`${rating} / 5 sao`, `${rating} / 5 stars`);
+}
+
+function similarFilms(film, limit = 6) {
+  return films
+    .filter(other => other.id !== film.id && other.genres.some(genre => film.genres.includes(genre)))
+    .sort((a, b) => {
+      const aOverlap = a.genres.filter(genre => film.genres.includes(genre)).length;
+      const bOverlap = b.genres.filter(genre => film.genres.includes(genre)).length;
+      if (bOverlap !== aOverlap) return bOverlap - aOverlap;
+      if ((b.score ?? -1) !== (a.score ?? -1)) return (b.score ?? -1) - (a.score ?? -1);
+      return compareRelease(a, b);
+    })
+    .slice(0, limit);
+}
+
+function similarSection(film) {
+  const items = similarFilms(film, 6);
+  if (!items.length) return "";
+  return `<section class="similar-section" aria-labelledby="similar-title">
+    <div class="shelf-head">
+      <div><h2 id="similar-title">${bi("Phim cùng thể loại", "Similar films")}</h2>
+        <p class="shelf-caption">${bi("Gợi ý theo thể loại:", "Based on genres:")} ${film.genres.map(genreLabel).join(", ")}</p></div>
+      <div class="shelf-tools"><a href="${escapeHtml(catalogUrl({ genre: film.genres[0] }))}">${bi("Xem tất cả", "View all")} ${icon("arrow", 15)}</a></div>
+    </div>
+    <div class="film-grid">${items.map(item => filmCard(item, { badge: item.episodes ? episodeCount(item.episodeCount) : "" })).join("")}</div>
+  </section>`;
+}
+
 function episodeList(film, current = null, selectedPart) {
-  const partIndex = selectedPart ?? Math.max(0, film.parts.findIndex(part => current >= part.first && current <= part.last));
+  const recent = !current ? watchHistory().find(item => item.id === film.id && Number.isFinite(item.progress) && item.progress < .98) : null;
+  const activeNumber = current ?? recent?.episode ?? 1;
+  const partIndex = selectedPart ?? Math.max(0, film.parts.findIndex(part => activeNumber >= part.first && activeNumber <= part.last));
   const { first, last } = film.parts[partIndex];
   const partLabel = index => bi(`Phần ${index + 1}`, `Part ${index + 1}`);
   const summary = current
-    ? bi(`Tập đang chọn ${current}/${film.episodeCount}`, `Selected episode ${current} of ${film.episodeCount}`)
-    : episodeCount(film.episodeCount);
+    ? bi(`Đang chọn: ${episodeProgressLabel(current, film.episodeCount)}`, `Selected: ${episodeProgressLabel(current, film.episodeCount)}`)
+    : recent
+      ? bi(`Đang xem: ${episodeProgressLabel(recent.episode, film.episodeCount)}`, `In progress: ${episodeProgressLabel(recent.episode, film.episodeCount)}`)
+      : bi(`Tổng cộng ${film.episodeCount} tập · ${episodeProgressLabel(1, film.episodeCount)}`, `${film.episodeCount} episodes · ${episodeProgressLabel(1, film.episodeCount)}`);
   return `<section class="episode-section" aria-labelledby="episode-title">
     <div class="episode-head"><div><h2 id="episode-title">${bi("Danh sách tập", "Episodes")}</h2><p>${summary}</p></div>
     ${film.parts.length > 1 ? `<select id="episode-part" aria-label="${bi("Chọn phần", "Choose part")}">${videoOptions(film.parts.map((_, index) => [index, partLabel(index)]), partIndex)}</select>` : `<span class="season-label">${partLabel(0)}</span>`}</div>
@@ -569,7 +802,7 @@ function episodeList(film, current = null, selectedPart) {
       const number = first + index;
       const progress = watching(film, number)?.progress ?? 0;
       return `<a class="episode-card" href="${routeToPlayer(film, number)}" ${current === number ? 'aria-current="page"' : ""}>
-        <div class="episode-art"><img src="${episodeArt(film, number)}" alt="" loading="lazy"><span>${episodeLabel(number)}</span>${icon("play", 23)}</div>
+        <div class="episode-art"><img src="${episodeArt(film, number)}" alt="" loading="lazy"><span>${episodeProgressLabel(number, film.episodeCount)}</span>${icon("play", 23)}</div>
         <div class="episode-copy"><strong>${episodeTitle(film, number)}</strong>${episodeMinutes(film, number) ? `<small>${minutesLabel(episodeMinutes(film, number))}</small>` : ""}
           ${progress > 0 ? `<progress value="${progress}" max="1" aria-label="${bi("Tiến độ xem", "Watch progress")}"></progress>` : ""}</div>
       </a>`;
@@ -580,32 +813,56 @@ function episodeList(film, current = null, selectedPart) {
 function detailPage(film) {
   const saved = isFollowing(film);
   const recent = watchHistory().find(item => item.id === film.id && Number.isFinite(item.progress) && item.progress < .98);
-  const playLabel = recent ? bi("Xem tiếp", "Resume")
-    : film.episodes ? bi("Xem tập 1", "Watch episode 1") : bi("Xem phim", "Watch film");
+  const currentEp = recent?.episode ?? 1;
+  const playLabel = recent
+    ? (film.episodes ? bi(`Xem tiếp · ${episodeProgressLabel(recent.episode, film.episodeCount)}`, `Resume · ${episodeProgressLabel(recent.episode, film.episodeCount)}`) : bi("Xem tiếp", "Resume"))
+    : film.episodes ? bi(`Xem ${episodeProgressLabel(1, film.episodeCount)}`, `Watch ${episodeProgressLabel(1, film.episodeCount)}`) : bi("Xem phim", "Watch film");
+  const publisher = film.trailerPublisher ?? film.publisher;
+  const formatLabel = film.episodes ? bi("Phim bộ trực tuyến", "Streaming series") : film.theatrical ? bi("Phim chiếu rạp", "Theatrical release") : bi("Phim lẻ trực tuyến", "Streaming film");
   return `<section class="film-detail" style="--art:url('${backdropOf(film)}');--art-focus:${film.focus ?? "center 40%"}">
     <div class="frame">${filmCrumb(film)}
-      <div class="detail-layout"><img class="detail-poster" src="${film.poster}" alt="Poster · ${film.title}" width="252" height="339">
-        <div class="detail-copy">
-          <span class="type-label">${typeOf(film)}</span><h1>${film.title}</h1>
-          ${film.original ? `<p class="original-title">${film.original}</p>` : ""}
-          <div class="film-meta">${film.score == null ? "" : `<span class="meta-score" title="${film.publisher}">${icon("star", 16)} ${scoreText(film.score)} / 10</span>`}<span>${film.year}</span><span>${film.episodes ? episodeCount(film.episodeCount) : minutesLabel(film.minutes)}</span></div>
-          <p class="detail-description">${film.description}</p>
-          ${filmStats(film)}
-          <div class="actions"><a class="button primary" href="${routeToPlayer(film, recent?.episode)}">${icon("play", 22)}${playLabel}</a>
-            <button class="button secondary" type="button" data-action="trailer" data-film="${film.id}">${icon("trailer", 20)} Trailer</button>
-            <button class="button secondary follow-button" type="button" data-action="follow" data-film="${film.id}" aria-pressed="${saved}">${icon(saved ? "check" : "bookmark", 18)}${bi("Theo dõi", "Watchlist")}</button>
+      <div class="detail-layout">
+        <div class="detail-main">
+          <img class="detail-poster" src="${film.poster}" alt="Poster · ${film.title}" width="252" height="339">
+          <div class="detail-copy">
+            <div class="detail-badges">
+              <span class="type-label">${typeOf(film)}</span>
+              ${film.episodes ? `<span class="episode-progress-badge">${episodeProgressLabel(currentEp, film.episodeCount)}</span>` : ""}
+            </div>
+            <h1>${film.title}</h1>
+            ${film.original ? `<p class="original-title">${film.original}</p>` : ""}
+            <div class="film-meta">${film.score == null ? "" : `<span class="meta-score" title="${film.publisher}">${icon("star", 16)} ${scoreText(film.score)} / 10</span>`}<span>${film.year}</span><span>${film.episodes ? episodeCount(film.episodeCount) : minutesLabel(film.minutes)}</span></div>
+            <p class="detail-description">${film.description}</p>
+            ${filmStats(film)}
+            <div class="actions"><a class="button primary" href="${routeToPlayer(film, recent?.episode)}">${icon("play", 22)}${playLabel}</a>
+              <button class="button secondary" type="button" data-action="trailer" data-film="${film.id}">${icon("trailer", 20)} Trailer</button>
+              <button class="button secondary follow-button" type="button" data-action="follow" data-film="${film.id}" aria-pressed="${saved}">${icon(saved ? "check" : "bookmark", 18)}${bi("Theo dõi", "Watchlist")}</button>
+            </div>
           </div>
         </div>
+        <aside class="detail-aside" aria-label="${bi("Trailer và thông tin nổi bật", "Trailer and highlights")}">
+          <div class="detail-trailer-card">
+            <div class="detail-trailer-head">
+              <h2>${icon("trailer", 18)} ${bi("Trailer chính thức", "Official trailer")}</h2>
+              <a class="source-link" href="https://www.youtube.com/watch?v=${film.youtube}" ${external}>YouTube ${icon("arrow", 13)}</a>
+            </div>
+            <div class="detail-trailer-frame">
+              <iframe src="https://www.youtube-nocookie.com/embed/${film.youtube}" title="Trailer · ${film.title}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            </div>
+            <div class="detail-highlights">
+              <div><span>${bi("Phát hành", "Distributor")}</span><strong>${escapeHtml(publisher)}</strong></div>
+              <div><span>${bi("Hình thức", "Format")}</span><strong>${formatLabel}</strong></div>
+              <div><span>${bi("Năm", "Year")}</span><strong>${film.year}</strong></div>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   </section>
   <div class="frame detail-sections">
-    ${film.episodeCount > 1 ? episodeList(film) : `<section class="trailer-section">
-      <div><h2>Trailer</h2><p>${film.trailerPublisher ?? film.publisher}</p></div>
-      <button type="button" class="trailer-preview" data-action="trailer" data-film="${film.id}" aria-label="${bi("Phát trailer", "Play trailer")} · ${film.title}">
-        <img src="${backdropOf(film)}" alt="" loading="lazy"><span>${icon("play", 32)}</span>
-      </button>
-    </section>`}
+    ${film.episodeCount > 1 ? episodeList(film) : ""}
+    ${reviewsSection(film)}
+    ${similarSection(film)}
   </div>`;
 }
 
@@ -624,9 +881,12 @@ function videoPlayer(film, episode) {
   const captionOptions = [["off", bi("Tắt", "Off")], ["vi", "Tiếng Việt"], ["en", "English"]];
   const qualityOptions = [["auto", bi("Tự động", "Auto")], ["1080", "1080p"], ["720", "720p"], ["480", "480p"]];
   const narrationOptions = [["off", bi("Tắt", "Off")], ["vi", "Tiếng Việt"]];
+  const initialCaptions = read("playerCaptions", settings.defaultCaptions ?? "off");
+  const initialQuality = read("playerQuality", settings.defaultQuality ?? "auto");
+  const episodeTag = film.episodes ? `${episodeProgressLabel(episode, film.episodeCount)} · ` : "";
   return `<div class="player" data-player="${episode}" role="group" aria-label="${bi("Trình phát mô phỏng", "Demo player")}">
     <img class="player-still" src="${playerArt(film, episode)}" width="1920" height="1080" alt="" draggable="false">
-    <span class="player-demo-label">${bi("Mô phỏng bằng ảnh tĩnh", "Still-image demo")}<span data-player-mode></span></span>
+    <span class="player-demo-label">${episodeTag}${bi("Mô phỏng bằng ảnh tĩnh", "Still-image demo")}<span data-player-mode></span></span>
     <button class="player-big-play" type="button" data-video="play" aria-label="${playLabel}">${icon("play", 42)}</button>
     <span class="player-captions" hidden></span>
     <div class="video-controls">
@@ -637,6 +897,7 @@ function videoPlayer(film, episode) {
           ${iconButton("volume", bi("Tắt tiếng", "Mute"), 'data-video="mute"')}
           <label class="volume-control"><span class="sr-only">${bi("Âm lượng", "Volume")}</span><input type="range" data-video="volume" min="0" max="1" step="0.05" value="1"></label>
           <span class="video-time" data-time></span>
+          ${film.episodes ? `<span class="video-episode-pill">${episodeProgressLabel(episode, film.episodeCount)}</span>` : ""}
         </div>
         <div>
           ${iconButton("jumpTen", bi("Tua lùi 10 giây", "Skip back 10 seconds"), 'data-video="rewind" aria-keyshortcuts="ArrowLeft"')}
@@ -644,9 +905,9 @@ function videoPlayer(film, episode) {
           ${episode < film.episodeCount ? `<a class="icon-button" href="${routeToPlayer(film, episode + 1)}" aria-label="${bi("Tập sau", "Next episode")}" title="${bi("Tập sau", "Next episode")}">${icon("skip")}</a>` : ""}
           ${iconButton("settings", bi("Cài đặt trình phát", "Player settings"), 'data-video="settings" aria-expanded="false" aria-controls="video-preferences"')}
           <div id="video-preferences" class="video-preferences" hidden>
-            <label><span>${bi("Phụ đề", "Subtitles")}</span><select data-video="captions">${videoOptions(captionOptions, read("playerCaptions", "off"))}</select></label>
-            <label><span>${bi("Chất lượng mẫu", "Demo quality")}</span><select data-video="quality">${videoOptions(qualityOptions, read("playerQuality", "auto"))}</select></label>
-            <label><span>${bi("Thuyết minh mẫu", "Demo voice-over")}</span><select data-video="narration">${videoOptions(narrationOptions, read("playerNarration", "off"))}</select></label>
+            <label><span>${bi("Phụ đề", "Subtitles")}</span><select data-video="captions">${videoOptions(captionOptions, initialCaptions)}</select></label>
+            <label><span>${bi("Chất lượng", "Quality")}</span><select data-video="quality">${videoOptions(qualityOptions, initialQuality)}</select></label>
+            <label><span>${bi("Thuyết minh", "Voice-over")}</span><select data-video="narration">${videoOptions(narrationOptions, read("playerNarration", "off"))}</select></label>
           </div>
           ${iconButton("fullscreen", bi("Toàn màn hình", "Fullscreen"), 'data-video="fullscreen"')}
         </div>
@@ -662,7 +923,7 @@ function playerPage(film, current) {
     ${filmCrumb(film, true)}
     ${videoPlayer(film, current)}
     <div class="watch-heading">
-      <div><div class="type-label">${film.episodes ? episodeLabel(current) : typeOf(film)}</div><h1>${film.title}</h1>
+      <div><div class="type-label">${film.episodes ? episodeProgressLabel(current, film.episodeCount) : typeOf(film)}</div><h1>${film.title}</h1>
         <p>${film.episodes ? `${episodeTitle(film, current)} · ` : ""}${minutesLabel(episodeMinutes(film, current))}${film.id === "tears-of-steel" ? " · © Blender Foundation · CC BY 3.0" : ""}</p></div>
       <div class="actions">
         <button class="button secondary" type="button" data-action="trailer" data-film="${film.id}">${icon("trailer", 18)} Trailer</button>
@@ -671,6 +932,8 @@ function playerPage(film, current) {
       </div>
     </div>
     ${film.episodes ? episodeList(film, current) : ""}
+    ${reviewsSection(film)}
+    ${similarSection(film)}
   </div>`;
 }
 
@@ -787,7 +1050,7 @@ function bindPlayer(container, film, episode) {
   }
 
   function syncPreferences() {
-    const samples = { vi: "Đây là phụ đề tiếng Việt mẫu.", en: "This is a sample English subtitle." };
+    const samples = { vi: "Phụ đề tiếng Việt đang hiển thị.", en: "English subtitles are enabled." };
     captionLine.textContent = samples[captions.value] ?? "";
     captionLine.hidden = !captionLine.textContent;
     captionLine.lang = captionLine.hidden ? "" : captions.value;
@@ -938,19 +1201,21 @@ function openTrailer(film, trigger) {
   trailer.showModal();
 }
 
-function showRecoveryResult({ title, message, success = false, input }) {
+function showRecoveryResult({ title, message, success = false, input, buttonLabel, redirectTo }) {
   const hash = location.hash;
+  const label = buttonLabel ?? (success ? bi("Về đăng nhập", "Back to sign in") : bi("Thử lại", "Try again"));
+  const destination = redirectTo !== undefined ? redirectTo : (success ? "#/dang-nhap" : "");
   resultDialog.dataset.outcome = success ? "success" : "failure";
   resultDialog.innerHTML = `<form method="dialog">
     <button class="icon-button result-close" type="submit" aria-label="${bi("Đóng hộp thoại", "Close dialog")}">${icon("x")}</button>
     <span class="result-icon">${icon(success ? "check" : "info", 28)}</span>
     <h2 id="result-title">${escapeHtml(title)}</h2>
     <p id="result-message">${escapeHtml(message)}</p>
-    <button class="button primary full" type="submit" autofocus>${success ? bi("Về đăng nhập", "Back to sign in") : bi("Thử lại", "Try again")}</button>
+    <button class="button primary full" type="submit" autofocus>${escapeHtml(label)}</button>
   </form>`;
   resultDialog.addEventListener("close", () => {
     if (location.hash !== hash) return;
-    if (success) go("#/dang-nhap");
+    if (destination) go(destination);
     else input?.focus();
   }, { once: true });
   resultDialog.showModal();
@@ -978,15 +1243,24 @@ function field(name, label, options = {}) {
 function authPage(kind) {
   const register = kind === "dang-ky";
   const name = register ? bi("Đăng ký", "Create account") : bi("Đăng nhập", "Sign in");
+  const remembered = !register ? read("remembered", null) : null;
+  const emailValue = register ? draft?.email : (signInEmail || remembered?.email || "");
+  const passwordValue = !register && !signInEmail ? (remembered?.password || "") : "";
   return `<section class="auth-stage"><div class="auth-card">
+    <a class="inline-back" href="#/">${icon("back", 17)}${bi("Về trang chủ", "Back to home")}</a>
     <span class="auth-icon">${icon(register ? "movie" : "user", 25)}</span>
     ${pageTitle(name, register ? bi("Tạo tài khoản để lưu phim và xem tiếp bất cứ lúc nào.", "Create an account to save films and keep watching.") : bi("Tiếp tục hành trình xem phim của bạn.", "Continue watching your favourite films."))}
     <form id="auth-form" data-kind="${kind}">
       ${register ? field("name", bi("Tên hiển thị", "Display name"), { value: draft?.name, autocomplete: "nickname", placeholder: demoUser.name, max: 45 }) : ""}
-      ${field("email", "Email", { type: "email", value: register ? draft?.email : signInEmail, autocomplete: "email", placeholder: "ban@example.com" })}
-      ${field("password", bi("Mật khẩu", "Password"), { type: "password", autocomplete: register ? "new-password" : "current-password", min: register ? 8 : "", placeholder: register ? bi("Tối thiểu 8 ký tự", "At least 8 characters") : bi("Nhập mật khẩu", "Enter your password") })}
+      ${field("email", "Email", { type: "email", value: emailValue, autocomplete: "email", placeholder: "ban@example.com" })}
+      ${field("password", bi("Mật khẩu", "Password"), { type: "password", value: passwordValue, autocomplete: register ? "new-password" : "current-password", min: register ? 8 : "", placeholder: register ? bi("Tối thiểu 8 ký tự", "At least 8 characters") : bi("Nhập mật khẩu", "Enter your password") })}
       ${register ? field("confirm", bi("Nhập lại mật khẩu", "Confirm password"), { type: "password", autocomplete: "new-password", min: 8, placeholder: bi("Nhập lại mật khẩu", "Re-enter your password") }) : ""}
-      ${register ? "" : `<div class="auth-forgot"><a href="#/quen-mat-khau" data-action="forgot">${bi("Quên mật khẩu?", "Forgot password?")}</a></div>`}
+      ${register
+        ? `<label class="checkbox-field auth-terms"><input type="checkbox" name="terms" id="field-terms"><span>${bi('Tôi đồng ý với <a href="#/dieu-khoan">Điều khoản sử dụng</a> của Rạp Nhà', 'I agree to Rạp Nhà’s <a href="#/dieu-khoan">Terms of Use</a>')}</span></label>`
+        : `<div class="auth-options">
+            <label class="checkbox-field"><input type="checkbox" name="remember" id="field-remember" ${remembered ? "checked" : ""}><span>${bi("Ghi nhớ mật khẩu", "Remember password")}</span></label>
+            <a href="#/quen-mat-khau" data-action="forgot">${bi("Quên mật khẩu?", "Forgot password?")}</a>
+          </div>`}
       <p class="form-error" role="alert" hidden></p>
       <button class="button primary full" type="submit">${register ? bi("Tiếp tục", "Continue") : name} ${icon("arrow", 17)}</button>
     </form>
@@ -999,7 +1273,7 @@ function forgotPasswordPage() {
   return `<section class="auth-stage"><div class="auth-card">
     <a class="inline-back" href="#/dang-nhap">${icon("back", 17)}${bi("Quay lại đăng nhập", "Back to sign in")}</a>
     <span class="auth-icon">${icon("lock", 25)}</span>
-    ${pageTitle(bi("Quên mật khẩu", "Forgot password"), bi("Nhập email tài khoản để lấy mã xác nhận dùng thử.", "Enter your account email to get a demo verification code."))}
+    ${pageTitle(bi("Quên mật khẩu", "Forgot password"), bi("Nhập email tài khoản để nhận mã xác nhận.", "Enter your account email to receive a verification code."))}
     <form id="recovery-form">
       ${field("email", "Email", { type: "email", value: recovery?.email ?? signInEmail, autocomplete: "email", placeholder: "ban@example.com" })}
       <button class="button primary full" type="submit">${bi("Lấy mã xác nhận", "Get verification code")}</button>
@@ -1029,8 +1303,8 @@ function otpPage(challenge, recovering) {
   const backLabel = recovering ? bi("Đổi email", "Change email") : bi("Quay lại đăng ký", "Back to registration");
   if (!challenge) {
     const message = recovering
-      ? bi("Nhập email ở trang Quên mật khẩu để lấy mã xác nhận mẫu.", "Enter your email on the password recovery page to get a demo code.")
-      : bi("Hãy điền thông tin đăng ký để nhận mã xác nhận mẫu.", "Complete the registration form to get a demo verification code.");
+      ? bi("Nhập email ở trang Quên mật khẩu để nhận mã xác nhận.", "Enter your email on the password recovery page to receive a verification code.")
+      : bi("Hãy điền thông tin đăng ký để nhận mã xác nhận.", "Complete the registration form to receive a verification code.");
     return `<div class="frame inner-page">${emptyState("mail", title, message, back, backLabel)}</div>`;
   }
   const message = recovering
@@ -1041,13 +1315,85 @@ function otpPage(challenge, recovering) {
     <span class="auth-icon">${icon("mail", 25)}</span>
     ${pageTitle(title, message + ` <strong>${escapeHtml(challenge.email)}</strong>.`)}
     <form id="otp-form" data-purpose="${recovering ? "recovery" : "registration"}">
-      <div class="form-field"><label for="otp">${bi("Mã xác nhận", "Verification code")}</label><input name="otp" id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required></div>
-      <p class="demo-note">${bi("Mã OTP dùng thử", "Demo verification code")} <strong>${demoOtp}</strong></p>
-      ${recovering ? "" : '<p class="form-error" role="alert" hidden></p>'}
+      <div class="form-field">
+        <label for="otp-0">${bi("Mã xác nhận", "Verification code")}</label>
+        <div class="otp-inputs" role="group" aria-label="${bi("Nhập 6 chữ số xác nhận", "Enter 6-digit verification code")}">
+          ${Array.from({ length: 6 }, (_, index) => `<input class="otp-box" id="otp-${index}" name="otp-${index}" data-otp-index="${index}" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="${index === 0 ? "one-time-code" : "off"}" aria-label="${bi(`Chữ số ${index + 1}`, `Digit ${index + 1}`)}">`).join("")}
+        </div>
+        <input type="hidden" name="otp" id="otp" value="">
+      </div>
+      <p class="demo-note">${bi("Mã OTP dùng thử:", "Demo verification code:")} <strong>${demoOtp}</strong></p>
+      <p class="form-error" role="alert" hidden></p>
       <button class="button primary full" type="submit">${bi("Xác nhận", "Confirm")} ${icon("arrow", 17)}</button>
     </form>
     <button class="text-button resend" type="button" data-action="resend">${bi("Gửi lại mã", "Resend code")}</button>
   </div></section>`;
+}
+
+function bindOtpInputs(form, signal) {
+  if (!form) return;
+  const boxes = [...form.querySelectorAll(".otp-box")];
+  const hidden = form.querySelector("#otp");
+  const sync = () => {
+    if (hidden) hidden.value = boxes.map(box => box.value).join("");
+  };
+  const fillFrom = (startIndex, raw) => {
+    const digits = String(raw ?? "").replace(/\D/g, "").slice(0, 6);
+    if (!digits) return;
+    const base = digits.length >= 6 ? 0 : startIndex;
+    for (let i = 0; i < digits.length && base + i < boxes.length; i += 1) {
+      boxes[base + i].value = digits[i];
+    }
+    sync();
+    const nextIndex = Math.min(boxes.length - 1, base + digits.length);
+    boxes[nextIndex].focus();
+    boxes[nextIndex].select();
+  };
+  boxes.forEach((box, index) => {
+    box.addEventListener("input", event => {
+      const digits = box.value.replace(/\D/g, "");
+      if (digits.length > 1) {
+        fillFrom(index, digits);
+        return;
+      }
+      box.value = digits.slice(0, 1);
+      sync();
+      if (box.value && index < boxes.length - 1) {
+        boxes[index + 1].focus();
+        boxes[index + 1].select();
+      }
+    }, { signal });
+    box.addEventListener("keydown", event => {
+      if (event.key === "Backspace") {
+        if (box.value) {
+          box.value = "";
+          sync();
+          event.preventDefault();
+        } else if (index > 0) {
+          boxes[index - 1].value = "";
+          sync();
+          boxes[index - 1].focus();
+          event.preventDefault();
+        }
+      } else if (event.key === "ArrowLeft" && index > 0) {
+        event.preventDefault();
+        boxes[index - 1].focus();
+        boxes[index - 1].select();
+      } else if (event.key === "ArrowRight" && index < boxes.length - 1) {
+        event.preventDefault();
+        boxes[index + 1].focus();
+        boxes[index + 1].select();
+      }
+    }, { signal });
+    box.addEventListener("paste", event => {
+      const text = event.clipboardData?.getData("text") ?? "";
+      const digits = text.replace(/\D/g, "");
+      if (!digits) return;
+      event.preventDefault();
+      fillFrom(index, digits);
+    }, { signal });
+    box.addEventListener("focus", () => box.select(), { signal });
+  });
 }
 
 function updateResend(challenge) {
@@ -1108,16 +1454,38 @@ async function submitAuth(form) {
   try {
     if (form.dataset.kind === "dang-ky") {
       const name = String(data.get("name")).trim();
-      if (name.length < 2) return formError(form, bi("Tên hiển thị cần ít nhất 2 ký tự.", "Use at least 2 characters for your display name."));
-      if (password !== data.get("confirm")) return formError(form, bi("Mật khẩu nhập lại chưa khớp.", "Passwords do not match."));
-      if (email === demoEmail || read(accountKey("account", email), null)) return formError(form, bi("Email này đã được dùng trên trình duyệt này.", "This email is already registered in this browser."));
+      if (name.length < 2) {
+        formError(form, bi("Tên hiển thị cần ít nhất 2 ký tự.", "Use at least 2 characters for your display name."));
+        form.elements.namedItem("name")?.focus();
+        return;
+      }
+      if (password !== data.get("confirm")) {
+        formError(form, bi("Mật khẩu nhập lại chưa khớp.", "Passwords do not match."));
+        form.elements.namedItem("confirm")?.focus();
+        return;
+      }
+      if (!data.get("terms")) {
+        formError(form, bi("Vui lòng đồng ý với Điều khoản sử dụng của Rạp Nhà để tiếp tục.", "Please agree to Rạp Nhà’s Terms of Use to continue."));
+        form.elements.namedItem("terms")?.focus();
+        return;
+      }
+      if (email === demoEmail || read(accountKey("account", email), null)) {
+        formError(form, bi("Email này đã được dùng trên trình duyệt này.", "This email is already registered in this browser."));
+        form.elements.namedItem("email")?.focus();
+        return;
+      }
       const credentials = await passwordRecord(password);
       if (!form.isConnected) return;
       draft = { name, email, ...credentials, resendAt: Date.now() + 30000 };
-      go("#/otp");
+      go("#/xac-nhan-otp");
     } else {
       const account = read(accountKey("account", email), null);
-      if (!account || await digest(password, account.salt) !== account.hash) return formError(form, bi("Email hoặc mật khẩu chưa đúng. Bạn cũng có thể dùng tài khoản mẫu.", "The email or password is incorrect. You can also use the demo account."));
+      const valid = account?.hash
+        ? await digest(password, account.salt) === account.hash
+        : email === demoEmail && password === demoPassword;
+      if (!valid) return formError(form, bi("Email hoặc mật khẩu chưa đúng.", "The email or password is incorrect."));
+      if (data.get("remember")) write("remembered", { email, password });
+      else write("remembered", null);
       if (form.isConnected) finishSignIn(email === demoEmail ? demoProfile() : account);
     }
   } catch {
@@ -1180,7 +1548,7 @@ async function submitRecovery(form) {
   if (!account) {
     showRecoveryResult({
       title: bi("Không tìm thấy tài khoản", "Account not found"),
-      message: bi("Email này chưa được đăng ký trên trình duyệt này. Hãy kiểm tra email hoặc dùng email mẫu.", "This email is not registered in this browser. Check your email or use the demo email."),
+      message: bi(`Email này chưa được đăng ký trên trình duyệt này. Bạn có thể thử bằng ${demoEmail}.`, `This email is not registered in this browser. You can try ${demoEmail}.`),
       input,
     });
   } else if (!reset) {
@@ -1208,17 +1576,25 @@ function submitOtp(form) {
   const recovering = form.dataset.purpose === "recovery";
   const challenge = recovering ? recovery : draft;
   if (!challenge) return;
-  const input = form.elements.namedItem("otp");
-  if (input.value !== demoOtp) {
+  const boxes = [...form.querySelectorAll(".otp-box")];
+  const code = boxes.map(box => box.value.trim()).join("");
+  const firstEmpty = boxes.find(box => !box.value.trim()) ?? boxes[0];
+  formError(form, "");
+  if (code.length < 6) {
+    formError(form, bi("Vui lòng nhập đủ 6 chữ số xác nhận.", "Please enter all 6 verification digits."));
+    firstEmpty?.focus();
+    return;
+  }
+  if (code !== demoOtp) {
     if (recovering) {
       showRecoveryResult({
         title: bi("Mã xác nhận chưa đúng", "Incorrect verification code"),
-        message: bi("Hãy nhập lại mã OTP dùng thử hiển thị trên màn hình.", "Try again using the demo verification code on the screen."),
-        input,
+        message: bi(`Hãy nhập mã OTP dùng thử ${demoOtp}.`, `Enter the demo verification code ${demoOtp}.`),
+        input: boxes[0],
       });
     } else {
-      formError(form, bi("Mã chưa đúng. Hãy nhập mã OTP dùng thử ở trên.", "Incorrect code. Enter the demo verification code above."));
-      input.focus();
+      formError(form, bi(`Mã xác nhận chưa đúng. Hãy nhập mã OTP dùng thử ${demoOtp}.`, `Incorrect verification code. Enter the demo code ${demoOtp}.`));
+      boxes[0]?.focus();
     }
     return;
   }
@@ -1252,19 +1628,20 @@ async function submitPasswordChange(form) {
     field?.focus();
   };
 
+  const currentPassword = String(data.get("current-password"));
   if (password.length < 8) return fail(bi("Mật khẩu mới cần ít nhất 8 ký tự.", "Use at least 8 characters for your new password."), fields.namedItem("new-password"));
   if (password !== data.get("confirm-password")) return fail(bi("Mật khẩu nhập lại chưa khớp.", "Passwords do not match."), fields.namedItem("confirm-password"));
-  if (Boolean(current) !== Boolean(account?.hash)) {
-    return fail(retryMessage);
-  }
 
   formError(form, "");
   submit.disabled = true;
   try {
-    if (current && await digest(data.get("current-password"), account.salt) !== account.hash) {
+    const currentMatches = account?.hash
+      ? await digest(currentPassword, account.salt) === account.hash
+      : user.email === demoEmail && currentPassword === demoPassword;
+    if (!currentMatches) {
       return fail(bi("Mật khẩu hiện tại chưa đúng.", "Your current password is incorrect."), current);
     }
-    if (current && data.get("current-password") === password) {
+    if (currentPassword === password) {
       return fail(bi("Hãy chọn mật khẩu khác mật khẩu hiện tại.", "Choose a different password from your current one."), fields.namedItem("new-password"));
     }
     if (!isCurrent()) return;
@@ -1294,7 +1671,7 @@ function accountPage(page) {
     "tai-khoan": [bi("Quản lý thông tin tài khoản của bạn.", "Manage your account information."), profilePage],
     "lich-su": [bi("Phim và tập bạn đã mở trong trình phát.", "Films and episodes you opened in the player."), historyPage],
     "theo-doi": [bi("Những phim bạn đã lưu để xem sau.", "Films you saved to watch later."), followPage],
-    "cai-dat": [bi("Tùy chỉnh trình phát và quản lý mật khẩu.", "Manage your player and password."), settingsPage],
+    "cai-dat": [bi("Tùy chỉnh ngôn ngữ, trình phát, thông báo và quản lý mật khẩu.", "Manage your language, player, notifications and password."), settingsPage],
   };
   const [subtitle, render] = content[page];
   return `<div class="frame inner-page account-page">
@@ -1318,19 +1695,31 @@ function profilePage(edit = false) {
 }
 
 function settingsPage() {
-  const hasPassword = user.email !== demoEmail || Boolean(read(accountKey("account"), null)?.hash);
   const newPasswordOptions = { type: "password", autocomplete: "new-password", min: 8 };
-  return `<section class="panel pref-panel"><h2>${icon("movie", 20)}${bi("Trình phát", "Player")}</h2>
+  const qualityOptions = [["auto", bi("Tự động", "Auto")], ["1080", "1080p"], ["720", "720p"]];
+  const captionOptions = [["vi", bi("Tiếng Việt", "Vietnamese")], ["en", bi("Tiếng Anh", "English")], ["off", bi("Tắt", "Off")]];
+  return `<section class="panel pref-panel"><h2>${icon("globe", 20)}${bi("Ngôn ngữ & Giao diện", "Language & Interface")}</h2>
+      <div class="pref-row"><div><label for="pref-language">${bi("Ngôn ngữ hiển thị", "Display language")}</label><p>${bi("Đồng bộ trực tiếp với nút chuyển VI | EN trên thanh đầu trang.", "Synced directly with the VI | EN switch in the header.")}</p></div>
+        <select id="pref-language" data-pref="language">${videoOptions([["vi", "Tiếng Việt"], ["en", "English"]], settings.language)}</select></div></section>
+    <section class="panel pref-panel"><h2>${icon("movie", 20)}${bi("Trình phát", "Player")}</h2>
       <div class="pref-row"><div><label for="pref-autoplay">${bi("Tự động phát tập tiếp theo", "Autoplay next episode")}</label><p>${bi("Áp dụng cho các tập phát trong trình phát Rạp Nhà.", "Applies to episodes played in the Rạp Nhà player.")}</p></div>
-        <input id="pref-autoplay" type="checkbox" role="switch" class="toggle" data-pref="autoplay" ${settings.autoplay ? "checked" : ""}></div></section>
+        <input id="pref-autoplay" type="checkbox" role="switch" class="toggle" data-pref="autoplay" ${settings.autoplay ? "checked" : ""}></div>
+      <div class="pref-row"><div><label for="pref-defaultQuality">${bi("Chất lượng video mặc định", "Default video quality")}</label><p>${bi("Mức phân giải ưu tiên khi mở trình phát phim.", "Preferred resolution when opening the player.")}</p></div>
+        <select id="pref-defaultQuality" data-pref="defaultQuality">${videoOptions(qualityOptions, settings.defaultQuality ?? "auto")}</select></div>
+      <div class="pref-row"><div><label for="pref-defaultCaptions">${bi("Phụ đề mặc định", "Default subtitles")}</label><p>${bi("Ngôn ngữ phụ đề hiển thị sẵn trong trình phát.", "Default subtitle language shown in the player.")}</p></div>
+        <select id="pref-defaultCaptions" data-pref="defaultCaptions">${videoOptions(captionOptions, settings.defaultCaptions ?? "vi")}</select></div></section>
+    <section class="panel pref-panel"><h2>${icon("bell", 20)}${bi("Thông báo", "Notifications")}</h2>
+      <div class="pref-row"><div><label for="pref-notifyNewEpisode">${bi("Nhận thông báo khi phim theo dõi có tập mới", "Notify when watchlisted series release new episodes")}</label><p>${bi("Cập nhật kịp thời tập mới cho các phim bộ trong danh sách theo dõi.", "Get timely alerts when new episodes arrive for your saved series.")}</p></div>
+        <input id="pref-notifyNewEpisode" type="checkbox" role="switch" class="toggle" data-pref="notifyNewEpisode" ${settings.notifyNewEpisode ? "checked" : ""}></div>
+      <div class="pref-row"><div><label for="pref-notifyWeekendPicks">${bi("Gợi ý phim mới cuối tuần", "Weekend new release recommendations")}</label><p>${bi("Nhận danh sách phim nổi bật tuyển chọn mỗi cuối tuần.", "Receive curated film recommendations every weekend.")}</p></div>
+        <input id="pref-notifyWeekendPicks" type="checkbox" role="switch" class="toggle" data-pref="notifyWeekendPicks" ${settings.notifyWeekendPicks ? "checked" : ""}></div></section>
     <section class="panel pref-panel password-panel"><h2>${icon("lock", 20)}${bi("Đổi mật khẩu", "Change password")}</h2>
-      ${hasPassword ? "" : `<p>${bi("Tài khoản mẫu chưa có mật khẩu. Tạo mật khẩu để đăng nhập bằng email.", "Set a password for the demo account to sign in with email.")}</p>`}
       <form id="change-password-form">
-        ${hasPassword ? field("current-password", bi("Mật khẩu hiện tại", "Current password"), { type: "password", autocomplete: "current-password" }) : ""}
+        ${field("current-password", bi("Mật khẩu hiện tại", "Current password"), { type: "password", autocomplete: "current-password" })}
         ${field("new-password", bi("Mật khẩu mới", "New password"), { ...newPasswordOptions, placeholder: bi("Tối thiểu 8 ký tự", "At least 8 characters") })}
         ${field("confirm-password", bi("Nhập lại mật khẩu mới", "Confirm new password"), newPasswordOptions)}
         <p class="form-error" role="alert" hidden></p>
-        <button class="button primary" type="submit">${hasPassword ? bi("Đổi mật khẩu", "Change password") : bi("Tạo mật khẩu", "Set password")}</button>
+        <button class="button primary" type="submit">${bi("Đổi mật khẩu", "Change password")}</button>
       </form>
     </section>`;
 }
@@ -1340,7 +1729,10 @@ function historyPage() {
   const visible = records.filter(item => historyFilter === "all" || (Number.isFinite(item.progress) &&
     (historyFilter === "complete" ? item.progress >= .98 : item.progress < .98)));
   const labels = [["all", bi("Tất cả", "All")], ["watching", bi("Đang xem", "In progress")], ["complete", bi("Đã xem xong", "Completed")]];
-  return `<div class="history-filters" aria-label="${bi("Lọc lịch sử", "Filter history")}">${labels.map(([id, label]) => `<button type="button" data-action="history-filter" data-value="${id}" aria-pressed="${historyFilter === id}">${label}</button>`).join("")}</div>
+  return `<div class="history-toolbar">
+      <span>${bi(`${records.length} phim trong lịch sử xem`, `${records.length} titles in watch history`)}</span>
+      <div class="history-filters" aria-label="${bi("Lọc lịch sử", "Filter history")}">${labels.map(([id, label]) => `<button type="button" data-action="history-filter" data-value="${id}" aria-pressed="${historyFilter === id}">${label}</button>`).join("")}</div>
+    </div>
     ${visible.length ? `<div class="history-list">${visible.map(item => {
       const film = filmById[item.id];
       const tracked = Number.isFinite(item.progress);
@@ -1349,7 +1741,7 @@ function historyPage() {
       return `<article class="panel history-card">
         <a class="history-art" href="${routeToPlayer(film, item.episode)}" aria-label="${film.title}"><img src="${episodeArt(film, item.episode)}" alt="" loading="lazy"></a>
         <div class="history-info"><h2><a href="${routeToFilm(film)}">${film.title}</a></h2>
-          <p>${film.episodeCount > 1 ? episodeLabel(item.episode) : typeOf(film)} · ${prettyDate(item.viewed)}</p>
+          <p>${film.episodeCount > 1 ? episodeProgressLabel(item.episode, film.episodeCount) : typeOf(film)} · ${prettyDate(item.viewed)}</p>
           ${tracked ? `<div class="progress-row"><progress value="${item.progress}" max="1" aria-label="${bi("Tiến độ xem", "Watch progress")}"></progress><span>${progressText(item.progress)}</span></div>` : `<span class="source-status">${bi("Đã mở", "Opened")}</span>`}</div>
         <div class="history-actions"><a class="button secondary small" href="${routeToPlayer(film, item.episode)}">${icon(finished ? "check" : tracked ? "play" : "arrow", 16)}${action}</a>
           ${iconButton("trash", bi("Xóa khỏi lịch sử", "Remove from history"), `data-action="remove-history" data-film="${film.id}" data-episode="${item.episode}"`)}</div>
@@ -1371,26 +1763,114 @@ function followPage() {
 }
 
 function aboutPage() {
-  return `<div class="frame inner-page about-page">${pageTitle(bi("Giới thiệu & liên hệ", "About & contact"))}
-    <div class="about-grid"><section class="panel about-panel"><div class="about-art"></div><div class="about-copy">
-      <h2>${bi("Về Rạp Nhà", "About Rạp Nhà")}</h2>
-      <p>${bi("Rạp Nhà là bản mẫu khám phá phim của nhóm đồ án IE106. Bạn có thể tìm phim, xem trailer YouTube và thử trình phát ảnh tĩnh cho từng phim hoặc tập.", "Rạp Nhà is a film discovery prototype for the IE106 course. Browse titles, watch YouTube trailers, and try the still-image player for each film or episode.")}</p>
-      <p>${bi("Đồ án học phần Thiết kế giao diện người dùng · Trường Đại học Công nghệ Thông tin.", "User Interface Design course project · University of Information Technology.")}</p></div></section>
-    <section class="panel contact-panel" id="lien-he"><span class="auth-icon">${icon("mail", 23)}</span><h2>${bi("Liên hệ", "Contact")}</h2><p>${bi("Góp ý về giao diện hoặc báo lỗi cho nhóm đồ án.", "Share feedback or report an issue to the project team.")}</p>
-      <a class="button secondary" href="mailto:rapnha.ie106@example.com">${icon("mail", 17)} rapnha.ie106@example.com</a><small>${bi("Địa chỉ minh họa", "Example address")}</small></section></div></div>`;
+  return `<div class="frame inner-page about-page">
+    <div class="crumb"><a href="#/">${bi("Trang chủ", "Home")}</a>${icon("right", 14)}<span>${bi("Giới thiệu & liên hệ", "About & contact")}</span></div>
+    ${pageTitle(bi("Giới thiệu & liên hệ", "About & contact"))}
+    <div class="about-grid">
+      <div class="about-main">
+        <section class="panel about-panel"><div class="about-art"></div><div class="about-copy">
+          <h2>${bi("Về Rạp Nhà", "About Rạp Nhà")}</h2>
+          <p>${bi("Rạp Nhà là bản mẫu khám phá phim của nhóm đồ án IE106. Bạn có thể tìm phim, xem trailer YouTube và thử trình phát ảnh tĩnh cho từng phim hoặc tập.", "Rạp Nhà is a film discovery prototype for the IE106 course. Browse titles, watch YouTube trailers, and try the still-image player for each film or episode.")}</p>
+          <p>${bi("Đồ án học phần Thiết kế giao diện người dùng · Trường Đại học Công nghệ Thông tin.", "User Interface Design course project · University of Information Technology.")}</p></div></section>
+        <section class="panel contact-form-panel" id="lien-he">
+          <div class="contact-form-head">
+            <span class="auth-icon">${icon("message", 22)}</span>
+            <div><h2>${bi("Gửi phản hồi & báo lỗi nhanh", "Quick feedback & bug report")}</h2>
+              <p>${bi("Gửi góp ý giao diện hoặc báo sự cố trực tiếp cho nhóm đồ án.", "Share UI feedback or report an issue directly to the team.")}</p></div>
+          </div>
+          <form id="contact-form">
+            <div class="contact-form-row">
+              ${field("contact-name", bi("Họ tên", "Full name"), { value: user?.name ?? "", autocomplete: "name", placeholder: demoUser.name, max: 60 })}
+              ${field("contact-email", "Email", { type: "email", value: user?.email ?? "", autocomplete: "email", placeholder: "ban@example.com" })}
+            </div>
+            <div class="form-field">
+              <label for="field-contact-message">${bi("Nội dung góp ý", "Feedback message")}</label>
+              <textarea id="field-contact-message" name="contact-message" rows="4" maxlength="1000" placeholder="${escapeHtml(bi("Mô tả góp ý về giao diện hoặc lỗi bạn gặp phải…", "Describe your UI feedback or the issue you encountered…"))}" required></textarea>
+            </div>
+            <p class="form-error" role="alert" hidden></p>
+            <button class="button primary" type="submit">${bi("Gửi phản hồi", "Send feedback")} ${icon("arrow", 16)}</button>
+          </form>
+        </section>
+      </div>
+      <section class="panel contact-panel">
+        <span class="auth-icon">${icon("mail", 23)}</span>
+        <h2>${bi("Email liên hệ", "Contact email")}</h2>
+        <p>${bi("Ngoài biểu mẫu nhanh bên cạnh, bạn có thể gửi thư trực tiếp đến địa chỉ liên hệ của nhóm đồ án.", "In addition to the quick form, you can reach the project team via our contact email address.")}</p>
+        <a class="button secondary full" href="mailto:rapnha.ie106@example.com">${icon("mail", 17)} rapnha.ie106@example.com</a>
+        <small>${bi("Địa chỉ liên hệ", "Contact address")}</small>
+        <div class="contact-quick-links">
+          <a href="#/huong-dan">${icon("book", 16)} ${bi("Xem hướng dẫn sử dụng", "View user guide")}</a>
+          <a href="#/faq">${icon("info", 16)} ${bi("Câu hỏi thường gặp", "Frequently asked questions")}</a>
+        </div>
+      </section>
+    </div>
+  </div>`;
+}
+
+function guidePage() {
+  const steps = [
+    {
+      glyph: "search",
+      title: bi("1. Tìm kiếm phim nhanh", "1. Quick film search"),
+      body: bi("Nhập tên tiếng Việt có dấu, không dấu (ví dụ: hai phuong) hoặc tên quốc tế (Furie) vào ô tìm kiếm trên đầu trang để nhận gợi ý tức thì kèm poster và năm phát hành.", "Type Vietnamese titles with or without accents (e.g., hai phuong) or international titles (Furie) into the header search bar for instant suggestions with posters and years."),
+      href: catalogUrl({ q: "hai phuong" }),
+      cta: bi("Thử tìm Hai Phượng", "Try searching Furie"),
+    },
+    {
+      glyph: "sliders",
+      title: bi("2. Lọc & khám phá danh mục", "2. Filter & browse catalogue"),
+      body: bi("Mở Phim lẻ, Phim bộ, Thể loại hoặc bấm Xem tất cả ở từng hàng phim. Kết hợp 6 tiêu chí lọc (Loại phim, Thể loại, Năm, Quốc gia, Điểm đánh giá, Sắp xếp) và xóa nhanh từng điều kiện bằng thẻ tag bên dưới.", "Open Movies, Series, Genres, or View all on any home shelf. Combine 6 filter controls (Type, Genre, Year, Country, Rating, Sort) and clear individual tags below the bar."),
+      href: catalogUrl(),
+      cta: bi("Mở trang Khám phá", "Open Discover"),
+    },
+    {
+      glyph: "bookmark",
+      title: bi("3. Lưu danh sách theo dõi", "3. Save to your watchlist"),
+      body: bi("Sau khi đăng nhập, bấm nút Theo dõi trên trang giới thiệu phim để lưu tựa phim yêu thích. Mở mục Theo dõi trong menu tài khoản để sắp xếp theo năm phát hành hoặc ngày thêm.", "Once signed in, press Watchlist on any film page to save titles for later. Open Watchlist from the account menu to sort by release year or date added."),
+      href: "#/theo-doi",
+      cta: bi("Mở danh sách Theo dõi", "Open Watchlist"),
+    },
+    {
+      glyph: "clock",
+      title: bi("4. Theo dõi lịch sử xem", "4. Manage watch history"),
+      body: bi("Mỗi phim hoặc tập bạn phát trên trình phát đều tự động lưu mốc thời gian. Truy cập Lịch sử xem để xem tổng số phim đã xem, lọc Đang xem / Đã xem xong và bấm Xem tiếp ngay tại vị trí dừng.", "Every film or episode you play automatically saves its playback timestamp. Visit Watch history to see total titles watched, filter by In progress or Completed, and resume right where you left off."),
+      href: "#/lich-su",
+      cta: bi("Mở Lịch sử xem", "Open Watch history"),
+    },
+    {
+      glyph: "play",
+      title: bi("5. Dùng trình phát & đổi ngôn ngữ", "5. Use the player & switch language"),
+      body: bi("Trong trình phát, dùng nút Phát/Tạm dừng, tua lùi hoặc tới 10 giây (hoặc phím ← / →), chuyển tập ở phim bộ và tùy chỉnh phụ đề/chất lượng. Gạt nút VI | EN trên thanh đầu trang bất kỳ lúc nào để chuyển ngữ ngay lập tức.", "Inside the player, use Play/Pause, skip back/forward 10 seconds (or ← / → keys), switch series episodes, and adjust subtitles or quality. Toggle the VI | EN switch in the header anytime to switch languages instantly."),
+      href: "#/phim/khi-cuoc-doi-cho-ban-qua-quyt",
+      cta: bi("Xem thử phim bộ", "Try a series page"),
+    },
+  ];
+  return `<div class="frame inner-page guide-page">
+    <div class="crumb"><a href="#/">${bi("Trang chủ", "Home")}</a>${icon("right", 14)}<span>${bi("Hướng dẫn sử dụng", "User guide")}</span></div>
+    ${pageTitle(bi("Hướng dẫn sử dụng", "User guide"), bi("Các bước ngắn gọn giúp bạn tìm kiếm, lọc phim, lưu theo dõi, xem lịch sử và sử dụng trình phát Rạp Nhà hiệu quả.", "Quick step-by-step guide to searching, filtering, saving watchlists, viewing history, and using the Rạp Nhà player."))}
+    <div class="guide-grid">
+      ${steps.map(step => `<article class="panel guide-card">
+        <span class="auth-icon">${icon(step.glyph, 22)}</span>
+        <h2>${step.title}</h2>
+        <p>${step.body}</p>
+        <a class="guide-link" href="${escapeHtml(step.href)}">${step.cta} ${icon("arrow", 15)}</a>
+      </article>`).join("")}
+    </div>
+    <div class="faq-contact"><span>${bi("Vẫn còn thắc mắc?", "Still have questions?")}</span><a href="#/faq">${bi("Xem Câu hỏi thường gặp", "View FAQ")} ${icon("arrow", 15)}</a><a href="#/gioi-thieu/lien-he">${bi("Gửi phản hồi cho nhóm", "Contact the team")} ${icon("arrow", 15)}</a></div>
+  </div>`;
 }
 
 function faqPage() {
   const questions = [
     [bi("Tôi có thể xem thông tin phim khi chưa đăng nhập không?", "Can I browse films without an account?"), bi("Có. Bạn có thể tìm phim, xem trailer YouTube và dùng trình phát mô phỏng.", "Yes. You can search films, watch YouTube trailers, and use the demo player.")],
-    [bi("Tôi đăng ký và xác nhận tài khoản như thế nào?", "How do I register and verify my account?"), bi("Mở Đăng ký, điền thông tin rồi nhập mã OTP mẫu hiển thị trên màn hình xác nhận. Bạn cũng có thể chọn Dùng tài khoản mẫu ở màn hình Đăng nhập.", "Open registration, fill in the form and enter the demo code displayed on the verification screen. You can also use the demo account from the sign-in screen.")],
+    [bi("Tôi đăng ký và xác nhận tài khoản như thế nào?", "How do I register and verify my account?"), bi("Mở Đăng ký, điền thông tin tài khoản, đồng ý điều khoản rồi nhập mã OTP dùng thử hiển thị trên màn hình xác nhận. Bạn cũng có thể chọn Dùng tài khoản mẫu ở màn hình Đăng nhập.", "Open registration, fill in your account details, agree to the terms, and enter the demo OTP code displayed on the verification screen. You can also use the demo account from the sign-in screen.")],
     [bi("Tôi tìm lại phim đang xem ở đâu?", "Where can I find a film I started?"), bi("Sau khi đăng nhập, mở Lịch sử xem từ menu avatar để mở lại phim hoặc tập và tiếp tục từ vị trí đã lưu.", "Open Watch history from the account menu to reopen a film or episode and resume from your saved position.")],
     [bi("Tôi sắp xếp danh sách theo dõi như thế nào?", "How do I sort my watchlist?"), bi("Mở Theo dõi từ menu avatar và chọn sắp xếp theo năm phát hành hoặc ngày bạn thêm phim.", "Open Watchlist from the account menu and sort by release year or the date you added a film.")],
-    [bi("Tôi đổi ngôn ngữ giao diện ở đâu?", "How do I change the interface language?"), bi("Bấm biểu tượng quả địa cầu ở đầu trang, cạnh nút tài khoản, rồi chọn Tiếng Việt hoặc English.", "Select the globe icon next to the account button at the top of the page, then choose Tiếng Việt or English.")],
+    [bi("Tôi đổi ngôn ngữ giao diện ở đâu?", "How do I change the interface language?"), bi("Bấm trực tiếp công tắc VI | EN ở thanh đầu trang (cạnh nút tài khoản) hoặc đổi trong trang Cài đặt.", "Click the VI | EN switch directly in the top header (next to the account button) or change it on the Settings page.")],
   ];
   return `<div class="frame inner-page faq-page">${pageTitle(bi("Câu hỏi thường gặp", "Frequently asked questions"), bi("Tìm câu trả lời về tài khoản, phim và trình phát Rạp Nhà.", "Find answers about your account, films and the Rạp Nhà player."))}
     <div class="faq-list">${questions.map(([question, answer], index) => `<details class="panel" name="faq" ${index ? "" : "open"}><summary>${question} ${icon("down", 20)}</summary><p>${answer}</p></details>`).join("")}</div>
-    <div class="faq-contact"><span>${bi("Bạn cần hỗ trợ thêm?", "Need more help?")}</span><a href="#/gioi-thieu/lien-he">${bi("Liên hệ", "Contact")} ${icon("arrow", 15)}</a></div></div>`;
+    <div class="faq-contact"><span>${bi("Bạn cần hỗ trợ thêm?", "Need more help?")}</span><a href="#/huong-dan">${bi("Hướng dẫn sử dụng", "User guide")} ${icon("arrow", 15)}</a><a href="#/gioi-thieu/lien-he">${bi("Liên hệ", "Contact")} ${icon("arrow", 15)}</a></div></div>`;
 }
 
 function termsPage() {
@@ -1406,7 +1886,8 @@ function bindShelf(shelf, signal) {
   const previous = shelf.querySelector("[data-action=shelf-prev]");
   const next = shelf.querySelector("[data-action=shelf-next]");
   if (cards.length < 2) {
-    previous.disabled = next.disabled = true;
+    if (previous) previous.disabled = true;
+    if (next) next.disabled = true;
     return;
   }
 
@@ -1502,8 +1983,8 @@ function bindShelf(shelf, signal) {
   }
 
   measure();
-  previous.addEventListener("click", () => move(-1), { signal });
-  next.addEventListener("click", () => move(1), { signal });
+  previous?.addEventListener("click", () => move(-1), { signal });
+  next?.addEventListener("click", () => move(1), { signal });
   strip.addEventListener("scroll", () => {
     if (animation) return;
     clearTimeout(settleTimer);
@@ -1535,7 +2016,7 @@ function render({ focus = false, scroll = true } = {}) {
     location.replace("#/dang-nhap");
     return;
   }
-  if (!user && !["dang-nhap", "dang-ky", "otp", "quen-mat-khau"].includes(page)) {
+  if (!user && !["dang-nhap", "dang-ky", "otp", "xac-nhan-otp", "quen-mat-khau"].includes(page)) {
     returnTo = "";
     pendingFollow = "";
   }
@@ -1563,19 +2044,25 @@ function render({ focus = false, scroll = true } = {}) {
     main.innerHTML = playerPage(film, episode);
     disposePage = bindPlayer(main.querySelector("[data-player]"), film, episode);
   } else if (page === "dang-nhap" || page === "dang-ky") main.innerHTML = authPage(page);
-  else if (page === "otp" || (page === "quen-mat-khau" && id === "xac-nhan")) {
+  else if (page === "otp" || page === "xac-nhan-otp" || (page === "quen-mat-khau" && id === "xac-nhan")) {
     const recovering = page === "quen-mat-khau";
     const challenge = recovering ? recovery : draft;
     main.innerHTML = otpPage(challenge, recovering);
     if (challenge) {
+      const events = new AbortController();
+      bindOtpInputs(main.querySelector("#otp-form"), events.signal);
       updateResend(challenge);
       const timer = setInterval(() => updateResend(challenge), 250);
-      disposePage = () => clearInterval(timer);
+      disposePage = () => {
+        clearInterval(timer);
+        events.abort();
+      };
     }
   } else if (page === "quen-mat-khau") main.innerHTML = id === "dat-lai" ? resetPasswordPage() : forgotPasswordPage();
   else if (page === "dang-tai") main.innerHTML = loadingPage();
   else if (accountPages.includes(page)) main.innerHTML = accountPage(page);
   else if (page === "gioi-thieu") main.innerHTML = aboutPage();
+  else if (page === "huong-dan") main.innerHTML = guidePage();
   else if (page === "faq") main.innerHTML = faqPage();
   else if (page === "dieu-khoan") main.innerHTML = termsPage();
   else main.innerHTML = `<div class="frame inner-page">${emptyState("movie", bi("Không tìm thấy trang", "Page not found"), bi("Liên kết có thể đã thay đổi.", "This link may have changed."), "#/", bi("Về trang chủ", "Go home"))}</div>`;
@@ -1584,9 +2071,10 @@ function render({ focus = false, scroll = true } = {}) {
   document.title = `${heading || bi("Khám phá phim", "Discover films")} | Rạp Nhà`;
   if (focus) main.focus({ preventScroll: true });
   if (scroll) {
-    if (page === "gioi-thieu" && id === "lien-he") document.querySelector("#lien-he").scrollIntoView({ block: "start" });
+    if (page === "gioi-thieu" && id === "lien-he") document.querySelector("#lien-he")?.scrollIntoView({ block: "start" });
     else window.scrollTo(0, 0);
   }
+  syncBackToTop();
 }
 
 function replaceAccountContent(markup, selector) {
@@ -1612,6 +2100,16 @@ function toggleFollow(film, button) {
   }
   notify(saved ? bi("Đã bỏ theo dõi phim.", "Removed from your watchlist.") : bi("Đã thêm vào danh sách theo dõi.", "Added to your watchlist."));
 }
+
+function syncBackToTop() {
+  if (!backToTop) return;
+  const visible = window.scrollY > 300;
+  backToTop.hidden = !visible;
+  backToTop.classList.toggle("visible", visible);
+}
+
+window.addEventListener("scroll", syncBackToTop, { passive: true });
+backToTop?.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 
 window.addEventListener("hashchange", () => {
   if (location.hash === "#main") return;
@@ -1651,6 +2149,53 @@ document.addEventListener("submit", event => {
   } else if (form.id === "change-password-form") {
     event.preventDefault();
     submitPasswordChange(form);
+  } else if (form.id === "review-form") {
+    event.preventDefault();
+    const film = filmById[form.dataset.film];
+    if (!film) return;
+    const data = new FormData(form);
+    const author = String(data.get("author") ?? "").trim() || user?.name || bi("Khán giả Rạp Nhà", "Rạp Nhà viewer");
+    const text = String(data.get("comment") ?? "").trim();
+    const rating = Math.min(5, Math.max(1, Number(form.dataset.rating) || 5));
+    if (text.length < 5) {
+      formError(form, bi("Vui lòng nhập nội dung bình luận tối thiểu 5 ký tự.", "Please write at least 5 characters for your comment."));
+      form.elements.namedItem("comment")?.focus();
+      return;
+    }
+    const key = `reviews.${film.id}`;
+    const existing = read(key, []);
+    const entry = { id: `u-${Date.now()}`, author, rating, text, date: now() };
+    write(key, [entry, ...existing].slice(0, 50));
+    const section = form.closest(".reviews-section");
+    if (section) section.outerHTML = reviewsSection(film);
+    notify(bi("Đã gửi đánh giá và bình luận của bạn.", "Your review and comment have been posted."));
+  } else if (form.id === "contact-form") {
+    event.preventDefault();
+    const data = new FormData(form);
+    const name = String(data.get("contact-name") ?? "").trim();
+    const email = String(data.get("contact-email") ?? "").trim();
+    const message = String(data.get("contact-message") ?? "").trim();
+    formError(form, "");
+    if (name.length < 2) {
+      formError(form, bi("Họ tên cần ít nhất 2 ký tự.", "Please enter at least 2 characters for your name."));
+      form.elements.namedItem("contact-name")?.focus();
+      return;
+    }
+    if (message.length < 10) {
+      formError(form, bi("Nội dung góp ý cần ít nhất 10 ký tự.", "Please enter at least 10 characters for your message."));
+      form.elements.namedItem("contact-message")?.focus();
+      return;
+    }
+    const items = read("feedback", []);
+    write("feedback", [{ name, email, message, createdAt: now() }, ...items].slice(0, 30));
+    form.reset();
+    showRecoveryResult({
+      title: bi("Đã gửi phản hồi thành công", "Feedback sent successfully"),
+      message: bi(`Cảm ơn ${name}! Nhóm đồ án Rạp Nhà đã ghi nhận góp ý của bạn trên phiên trình duyệt này.`, `Thank you, ${name}! The Rạp Nhà team has recorded your feedback in this browser session.`),
+      success: true,
+      buttonLabel: bi("Đóng", "Close"),
+      redirectTo: "",
+    });
   } else if (form.id === "profile-form") {
     event.preventDefault();
     const name = String(new FormData(form).get("name")).trim();
@@ -1674,7 +2219,6 @@ document.addEventListener("submit", event => {
 
 document.addEventListener("input", event => {
   if (event.target.id === "search-input") showSuggestions();
-  else if (event.target.id === "otp") event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6);
 });
 
 document.addEventListener("focusin", event => {
@@ -1706,22 +2250,14 @@ document.addEventListener("change", event => {
   }
   const preference = element.dataset.pref;
   if (!preference) return;
+  if (preference === "language") {
+    applyLanguage(element.value, element.id ? `#${element.id}` : "");
+    return;
+  }
   settings[preference] = element.type === "checkbox" ? element.checked : element.value;
   write("settings", settings);
-  if (preference === "language") {
-    const form = main.querySelector("#auth-form, #recovery-form, #reset-password-form, #otp-form, #change-password-form");
-    const values = form && new FormData(form);
-    if (main.querySelector(".player.is-playing")) autoplayRoute = location.hash;
-    render({ scroll: false });
-    if (values) {
-      const replacement = document.getElementById(form.id);
-      for (const [name, value] of values) {
-        const input = replacement?.elements.namedItem(name);
-        if (input instanceof HTMLInputElement) input.value = value;
-      }
-    }
-    header.querySelector("[data-action=language]").focus({ preventScroll: true });
-  }
+  if (preference === "defaultQuality") write("playerQuality", settings.defaultQuality);
+  else if (preference === "defaultCaptions") write("playerCaptions", settings.defaultCaptions);
   notify(bi("Đã lưu cài đặt.", "Settings saved."));
 });
 
@@ -1759,7 +2295,7 @@ document.addEventListener("click", event => {
   }
   const button = event.target.closest("[data-action]");
   const action = button?.dataset.action;
-  if (!event.target.closest(".search-form, .account-wrap, .language-wrap, .genre-wrap")) hidePopovers();
+  if (!event.target.closest(".search-form, .account-wrap, .genre-wrap")) hidePopovers();
   if (!action) {
     const anchor = event.target.closest('a[href^="#/"]');
     if (anchor?.hash === (location.hash || "#/") && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
@@ -1769,12 +2305,20 @@ document.addEventListener("click", event => {
     }
     return;
   }
-  if (action === "avatar" || action === "language" || action === "genres") {
+  if (action === "avatar" || action === "genres") {
     const panel = document.getElementById(button.getAttribute("aria-controls"));
     const open = panel.hidden;
     hidePopovers();
     panel.hidden = !open;
     button.setAttribute("aria-expanded", String(open));
+  } else if (action === "set-language") {
+    const lang = button.dataset.lang;
+    if (lang && lang !== settings.language) {
+      applyLanguage(lang, `[data-action="set-language"][data-lang="${lang}"]`);
+    }
+  } else if (action === "rate-star") {
+    const form = button.closest("#review-form");
+    if (form) setReviewRating(form, button.dataset.value);
   } else if (action === "clear-search") {
     const input = document.querySelector("#search-input");
     input.value = "";
@@ -1808,7 +2352,7 @@ document.addEventListener("click", event => {
     if (!challenge || button.disabled) return;
     challenge.resendAt = Date.now() + 30000;
     updateResend(challenge);
-    notify(bi(`Mã dùng thử của bạn là ${demoOtp}.`, `Your demo code is ${demoOtp}.`));
+    notify(bi(`Mã OTP dùng thử của bạn là ${demoOtp}.`, `Your demo verification code is ${demoOtp}.`));
   } else if (action === "logout") {
     user = null;
     write("session", null);

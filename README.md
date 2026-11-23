@@ -48,9 +48,9 @@ Trên trang chủ, **Top 10 phim gần đây** xếp theo ngày phát hành tạ
 1. Nhập `hai phuong` hoặc `Furie` để tìm **Hai Phượng** theo tên tiếng Việt không dấu hoặc tên quốc tế. Thử lọc theo loại phim, thể loại, năm và quốc gia. Các điểm hiển thị lấy từ trang của nhà phát hành, khi có.
 2. Mở **Tết ở Làng Địa Ngục** và chọn một trong 12 tập. Bấm nút tua trên thanh điều khiển hoặc dùng phím **← / →** để tua lùi hoặc tới 10 giây. Mở **Cài đặt trình phát** để thử phụ đề, chất lượng và thuyết minh.
 3. Mở **Khi Cuộc Đời Cho Bạn Quả Quýt**, chọn Phần 4 rồi thử mở Tập 13. Nút **Trailer** mở video YouTube.
-4. Chọn **Đăng nhập → Dùng tài khoản mẫu** để xem theo dõi và lịch sử của **Minh Quân**. Có thể đăng ký bằng dữ liệu thử và mã OTP `123456`.
+4. Mở **Đăng nhập**, bấm **Dùng tài khoản mẫu** (hoặc nhập email `minhquan@example.com`, mật khẩu `rapnha123`) để xem danh sách theo dõi và lịch sử của **Minh Quân**. Có thể đăng ký tài khoản mới, đồng ý điều khoản và xác nhận bằng 6 ô mã OTP `123456`.
 5. Chọn **Đăng nhập → Quên mật khẩu? → Dùng email mẫu → Lấy mã xác nhận**. Dùng OTP `000000` để mở hộp thoại thất bại, rồi nhập `123456` và đặt mật khẩu mới để mở hộp thoại thành công. Mở đường dẫn `#/dang-tai` trên website để xem riêng màn hình Đang tải.
-6. Bấm biểu tượng quả địa cầu cạnh nút tài khoản để chuyển giữa **Tiếng Việt** và **English**. Sau khi đăng nhập, vào **Cài đặt → Đổi mật khẩu**. Tài khoản mẫu `minhquan@example.com` có thể tạo mật khẩu lần đầu tại đây.
+6. Gạt nút **VI | EN** ở thanh đầu trang (hoặc đổi trong **Cài đặt**) để chuyển giữa **Tiếng Việt** và **English**. Sau khi đăng nhập, vào **Cài đặt → Đổi mật khẩu** (mật khẩu mặc định `rapnha123` nếu chưa đổi).
 
 ## Nguồn phim và hình ảnh
 

@@ -204,8 +204,8 @@ const rated = films.filter(film => film.score != null).sort((a, b) => b.score - 
 const homeRows = [
   { title: "Top 10 phim gần đây", english: "Top 10 recent releases", params: { collection: "top10" }, items: recentTop },
   { title: "Phim chiếu rạp", english: "Theatrical films", params: { collection: "theatrical" }, items: theatricalShelf.slice(0, 8) },
-  { title: "Phim Việt Nam", english: "Vietnamese films", params: { country: "Việt Nam" }, items: vietnameseShelf.map(id => filmById[id]) },
-  { title: "Phim Hàn Quốc", english: "Korean films", params: { country: "Hàn Quốc" }, items: newest.filter(film => film.country === "Hàn Quốc").slice(0, 8) },
+  { title: "Phim Việt Nam", english: "Vietnamese films", params: { collection: "vietnam" }, items: vietnameseShelf.map(id => filmById[id]) },
+  { title: "Phim Hàn Quốc", english: "Korean films", params: { collection: "korea" }, items: newest.filter(film => film.country === "Hàn Quốc").slice(0, 8) },
   { title: "Rạp Nhà tuyển chọn", english: "Rạp Nhà picks", params: { sort: "picks" }, items: selections.map(id => filmById[id]) },
   { title: "Điểm cao từ nhà phát hành", english: "Top distributor ratings", params: { sort: "score" }, items: rated.slice(0, 8) },
 ];
