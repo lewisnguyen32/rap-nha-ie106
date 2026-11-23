@@ -20,11 +20,16 @@ Lịch sử chỉnh sửa
 12. Thêm ô xem nhanh trên desktop. Rê chuột hoặc dùng Tab đến thẻ phim để xem tóm tắt, thể loại, năm phát hành, thời lượng hoặc số tập và điểm đánh giá nếu có.
 13. Thêm hai nút tua lùi và tới 10 giây. Có thể dùng nút hoặc phím **← / →** khi đang phát và khi tạm dừng. Menu cài đặt có phụ đề, chất lượng và thuyết minh mẫu.
 14. Dùng một biểu tượng quả địa cầu cạnh nút tài khoản để đổi ngôn ngữ, sửa biểu tượng Cài đặt và thêm mục đổi mật khẩu sau khi đăng nhập. Đổi tên tài khoản mẫu thành **Minh Quân**.
-15. Thu gọn nút **VI | EN**, bo góc và thêm viền mảnh. Bấm ở bất kỳ đâu trên nút để chuyển sang ngôn ngữ còn lại. Nền đỏ trầm trượt sang ngôn ngữ đang dùng và lựa chọn được đồng bộ với **Cài đặt**.
-16. Cho menu **Thể loại** tự mở sau khi giữ chuột trên nút 0,3 giây. Mũi tên nhích xuống khi rê chuột, xoay lên khi menu mở và danh sách trượt nhẹ. Bấm nút hoặc dùng bàn phím để mở ngay.
-17. Đặt nút mũi tên tròn ở mép trái và phải của cả sáu hàng phim trên trang chủ, căn giữa theo chiều cao poster. Mỗi lần bấm cuộn hai phim và có thể cuộn vòng theo cả hai chiều.
-18. Bỏ gạch chân khi rê chuột lên **Xem tất cả**. Chữ sáng nhẹ để báo liên kết đang được trỏ tới.
-19. Cho menu avatar co theo tên và email để giảm khoảng trống bên phải. Menu chỉ mở khi kích hoạt nút, trượt nhẹ khi mở và đóng ngay. Nút **Đăng xuất** có nền đỏ trầm khi rê chuột hoặc chọn bằng bàn phím.
+15. **Minh Quân** bổ sung và chỉnh sửa các tính năng theo góp ý của cô.
+    - Thêm công tắc **VI | EN**, nút **Lên đầu trang** và các thẻ hiển thị bộ lọc đang áp dụng trong danh mục.
+    - Chỉnh bố cục trang giới thiệu phim, làm rõ số tập và thêm **Đánh giá & Bình luận** cùng hàng **Phim cùng thể loại**.
+    - Cập nhật luồng đăng nhập, đăng ký, xác nhận OTP và sắp xếp lại các mục trong **Cài đặt**.
+    - Thêm trang **Hướng dẫn sử dụng**, biểu mẫu phản hồi ở trang **Liên hệ** và chuẩn hóa nhãn tiếng Việt, tiếng Anh.
+16. Thu gọn nút **VI | EN**, bo góc và thêm viền mảnh. Bấm ở bất kỳ đâu trên nút để chuyển sang ngôn ngữ còn lại. Nền đỏ trầm trượt sang ngôn ngữ đang dùng và lựa chọn được đồng bộ với **Cài đặt**.
+17. Cho menu **Thể loại** tự mở sau khi giữ chuột trên nút 0,3 giây. Mũi tên nhích xuống khi rê chuột, xoay lên khi menu mở và danh sách trượt nhẹ. Bấm nút hoặc dùng bàn phím để mở ngay.
+18. Đặt nút mũi tên tròn ở mép trái và phải của cả sáu hàng phim trên trang chủ, căn giữa theo chiều cao poster. Mỗi lần bấm cuộn hai phim và có thể cuộn vòng theo cả hai chiều.
+19. Bỏ gạch chân khi rê chuột lên **Xem tất cả**. Chữ sáng nhẹ để báo liên kết đang được trỏ tới.
+20. Cho menu avatar co theo tên và email để giảm khoảng trống bên phải. Menu chỉ mở khi kích hoạt nút, trượt nhẹ khi mở và đóng ngay. Mũi tên đổi đỏ khi rê chuột và xoay theo trạng thái mở hoặc đóng. Nút **Đăng xuất** có nền đỏ trầm khi rê chuột hoặc chọn bằng bàn phím.
 
 Xem lý do, kết quả và gợi ý minh họa cho từng mốc trong [lịch sử chỉnh sửa chi tiết](CHANGELOG.md).
 ## Giới hạn bản demo
